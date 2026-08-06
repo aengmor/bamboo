@@ -146,27 +146,74 @@
         <!-- 集释区域 -->
         <div class="jishi-section">
             <h3>📝 集释 · 讨论</h3>
-            {% if comments %}
-            {% for comment in comments %}
-            <div class="jishi-item" style="padding: 12px 0; border-bottom: 1px dashed #ede6db;">
-                <div style="font-size: 14px; color: #7a5d3c;">
-                    <strong>{{ comment.commenter }}</strong>
-                    <span style="margin-left: 12px;">类型：{{ comment.get_comment_type_display }}</span>
-                    {% if comment.reliability > 0 %}
-                    <span style="margin-left: 12px;">可靠度：{{ comment.reliability }}/5</span>
-                    {% endif %}
-                    <span style="margin-left: 12px; float: right;">{{ comment.created_at|date:"Y-m-d H:i" }}</span>
-                </div>
-                <div style="font-size: 16px; line-height: 1.8; margin-top: 6px;">
-                    {{ comment.content|linebreaksbr }}
-                </div>
-            </div>
-            {% endfor %}
-            {% else %}
-            <div class="jishi-placeholder">
-                📭 目前尚无集释评论。欢迎学者登录后发表意见。
+
+            <!-- 显示消息（成功/失败提示） -->
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
             </div>
             {% endif %}
+
+            <!-- 显示已有的集释 -->
+            <div class="annotations-list">
+                {% for anno in annotations %}
+                <div class="annotation-item" style="padding: 12px 0; border-bottom: 1px dashed #ede6db;">
+                    <div class="annotation-header" style="font-size: 14px; color: #7a5d3c;">
+                        <span class="anno-author" style="margin-left: 12px;">{{ anno.author }}</span>
+                        <span class="anno-type" style="margin-left: 12px;">{{ anno.get_annotation_type_display }}</span>
+                        <span class="anno-confidence" style="margin-left: 12px;">可靠度：{{ anno.confidence }}/5</span>
+                        <span class="anno-date" style="margin-left: 12px; float:right">{{ anno.created_at|date:"Y-m-d" }}</span>
+                    </div>
+                    {% if anno.title %}
+                    <div class="anno-title">{{ anno.title }}</div>
+                    {% endif %}
+                    <div class="anno-content" style="font-size: 16px; line-height: 1.8; margin-top: 6px;">{{ anno.content|linebreaksbr }}</div>
+                    {% if anno.evidence %}
+                    <div class="anno-evidence">
+                        <strong>📖 证据：</strong>{{ anno.evidence|linebreaksbr }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="jishi-placeholder">
+                    📭 暂无集释。欢迎学者提交您的见解。
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 提交集释表单 -->
+            <div class="submit-form">
+                <h4>✍️ 提交您的集释</h4>
+                <p class="form-tip">集释将经过审核后显示。请提供尽可能详实的证据。</p>
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <div class="form-field half">
+                            {{ form.author.label_tag }}
+                            {{ form.author }}
+                        </div>
+                        <div class="form-field half">
+                            {{ form.annotation_type.label_tag }}
+                            {{ form.annotation_type }}
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        {{ form.title.label_tag }}
+                        {{ form.title }}
+                    </div>
+                    <div class="form-field">
+                        {{ form.content.label_tag }}
+                        {{ form.content }}
+                    </div>
+                    <div class="form-field">
+                        {{ form.evidence.label_tag }}
+                        {{ form.evidence }}
+                    </div>
+                    <button type="submit" class="submit-btn">提交集释</button>
+                </form>
+            </div>
         </div>
     </div>
 </body>
