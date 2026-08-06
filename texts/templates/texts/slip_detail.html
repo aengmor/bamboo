@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ slip.slip_id }} · 竹简释文</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'texts/css/style.css' %}">
+    <style>
+        /* 详情页专用样式 */
+        .detail-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 50px;
+            background-color: #fffcf8;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #7a5d3c;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .detail-header {
+            border-bottom: 2px solid #dacbb8;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+
+        .detail-title {
+            font-size: 28px;
+            font-weight: normal;
+            color: #3d2c1b;
+            margin: 0;
+        }
+
+        .detail-meta {
+            font-size: 15px;
+            color: #7a5d3c;
+            margin-top: 6px;
+        }
+
+        .detail-meta span {
+            margin-right: 20px;
+        }
+
+        .detail-content {
+            font-size: 22px;
+            line-height: 2;
+            font-family: "KaiTi", "楷体", serif;
+            padding: 20px 0;
+            text-indent: 2em;
+            letter-spacing: 0.5px;
+        }
+
+        .info-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ede6db;
+        }
+
+        .info-section h3 {
+            font-size: 18px;
+            font-weight: normal;
+            color: #7a5d3c;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            font-size: 16px;
+            color: #4d3a2a;
+            line-height: 1.8;
+        }
+
+        /* 集释区域（预留） */
+        .jishi-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px dashed #dacbb8;
+        }
+
+        .jishi-section h3 {
+            font-size: 20px;
+            font-weight: normal;
+            color: #3d2c1b;
+            margin-bottom: 16px;
+        }
+
+        .jishi-placeholder {
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+            background-color: #f5f0e8;
+            border-radius: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="detail-container">
+        <!-- 返回链接 -->
+        <a href="{% url 'slip_list' %}" class="back-link">← 返回列表</a>
+
+        <!-- 头部信息 -->
+        <div class="detail-header">
+            <h1 class="detail-title">{{ slip.slip_id }}</h1>
+            <div class="detail-meta">
+                <span>📂 篇目：{{ slip.chapter.title|default:"?" }}</span>
+                <span>📝 简号：{{ slip.slip_id|default:"?" }}</span>
+                {% if slip.source %}
+                <span>📖 出处：{{ slip.source|default:"?" }}</span>
+                {% endif %}
+                {% if slip.parallel_text %}
+                <span>🔁 对读：{{ slip.parallel_text|default:"?" }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 释文正文 -->
+        <div class="detail-content">
+            {{ slip.content|linebreaksbr }}
+        </div>
+
+        <!-- 扩展信息区（如果将来还有其他字段） -->
+        {% if slip.source or slip.parallel_text %}
+        <div class="info-section">
+            <h3>📌 补充信息</h3>
+            {% if slip.source %}
+            <p><strong>出处：</strong>{{ slip.source }}</p>
+            {% endif %}
+            {% if slip.parallel_text %}
+            <p><strong>对读文献：</strong>{{ slip.parallel_text }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- 集释区域 -->
+        <div class="jishi-section">
+            <h3>📝 集释 · 讨论</h3>
+            {% if comments %}
+            {% for comment in comments %}
+            <div class="jishi-item" style="padding: 12px 0; border-bottom: 1px dashed #ede6db;">
+                <div style="font-size: 14px; color: #7a5d3c;">
+                    <strong>{{ comment.commenter }}</strong>
+                    <span style="margin-left: 12px;">类型：{{ comment.get_comment_type_display }}</span>
+                    {% if comment.reliability > 0 %}
+                    <span style="margin-left: 12px;">可靠度：{{ comment.reliability }}/5</span>
+                    {% endif %}
+                    <span style="margin-left: 12px; float: right;">{{ comment.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div style="font-size: 16px; line-height: 1.8; margin-top: 6px;">
+                    {{ comment.content|linebreaksbr }}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="jishi-placeholder">
+                📭 目前尚无集释评论。欢迎学者登录后发表意见。
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>

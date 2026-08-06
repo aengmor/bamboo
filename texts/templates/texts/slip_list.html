@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+{% load text_extras %}
+{# load markdownx #}
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>竹简释文 · 先秦出土文献数据库</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'texts/css/style.css' %}">
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>📜 竹简释文</h1>
+
+        <!-- 搜索框 -->
+        <div class="search-bar">
+            <form method="get" action="">
+                <input type="text" name="q" placeholder="搜索竹简编号或释文内容..." value="{{ query }}">
+
+                <!-- 搜索框下拉选择篇目 -->
+                <select name="chapter">
+                    <option value="">全部篇目</option>
+                    {% for ch in chapters %}
+                    <option value="{{ ch.id }}" {% if selected_chapter_id == ch.id %}selected{% endif %}>
+                        {{ ch.title }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <!-- 搜索按钮 -->
+                <button type="submit">🔍 搜索</button>
+                {% if query %}
+                <a href="{% url 'slip_list' %}" class="clear-btn">清除</a>
+                {% endif %}
+            </form>
+        </div>
+
+        {% if query or selected_chapter_id %}
+        <p class="result-info">找到 {{ query_count }} 条释文</p>
+        {% endif %}
+
+        <!-- 按篇展示 -->
+        {% for group in chapter_data %}
+        <!-- 篇与篇之间隔开 -->
+        {% if not forloop.first %}
+        <hr class="chapter-divider">
+        {% endif %}
+
+        <h1 class="chapter">{{ group.chapter.title }}</h1>
+
+        <div class="slip-list">
+            {% for item in group.slips %}
+            <div class="slip-item">
+                <a href="{% url 'slip_detail' pk=item.pk %}" style="text-decoration: none; color: inherit;">
+                    <span class="slip-id">{{ item.slip_id }}</span>
+                    <span class="slip-content">{{ item.content|linebreaksbr|highlight:query}}</span>
+                </a>
+            </div>
+            {% empty %}
+            <div class="empty-msg">该篇暂无释文。</div>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div class="empty-msg">📭 暂无释文数据。</div>
+        {% endfor %}
+    </div>
+</body>
+
+</html>
