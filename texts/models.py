@@ -47,53 +47,55 @@ class SlipText(models.Model):
     class Meta:
         ordering = ['order'] 
 
-# class Comment(models.Model):
-#     # 评论类型选项（未来可根据需要扩展）
-#     COMMENT_TYPES = [
-#         ('li', '改隶'),
-#         ('shi', '改释'),
-#         ('bian', '重编'),
-#         ('zonghe', '综合'),
-#         ('other', '其他'),
-#     ]
-    
-#     # 关联到竹简
-#     slip = models.ForeignKey(SlipText, on_delete=models.CASCADE, related_name='comments', verbose_name="竹简")
-    
-#     # 评论者（暂用字符串，后期可改为外键到用户模型）
-#     commenter = models.CharField(max_length=50, verbose_name="评论者")
-    
-#     # 评论内容（支持较长文本）
-#     content = models.TextField(verbose_name="内容")
-    
-#     # 评论类型（默认“隶定/释读”）
-#     comment_type = models.CharField(max_length=20, choices=COMMENT_TYPES, default='li', verbose_name="类型")
+class Glyph(models.Model):
+    """字形"""
+    character = models.ForeignKey(
+        'Character',
+        on_delete=models.CASCADE,
+        related_name='glyphs',
+        verbose_name="所属字"
+    )
+    # 关联到哪支简（用于精确定位该字形出现的上下文）
+    slip = models.ForeignKey(
+        'SlipText',
+        on_delete=models.CASCADE,
+        related_name='glyphs',
+        verbose_name="所在竹简"
+    )
+    # 字形图片
+    image = models.ImageField(
+        upload_to='glyphs/%Y/%m/',
+        verbose_name="字形图片"
+    )
+    # 可选：该字在竹简上的位置（便于快速定位）
+    position = models.PositiveIntegerField(
+        default=0,
+        verbose_name="在简上的位置"
+    )
+    # 图片来源说明
+    source = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="图片来源"
+    )
+    # 备注
+    notes = models.TextField(
+        blank=True,
+        verbose_name="备注"
+    )
 
-#     # 证据
-#     evidence = models.TextField(blank=True, verbose_name="证据")
+    class Meta:
+        ordering = ['slip', 'position']
+        # 确保同一字在同一简上不会重复添加同一位置
+        unique_together = ['character', 'slip', 'position']
+        verbose_name = "字形"
+        verbose_name_plural = "字形"
 
-#     # 可靠度（1-5，5为最高，0表示未评级）
-#     reliability = models.PositiveSmallIntegerField(default=0, verbose_name="可靠度")
-    
-#     # 创建时间
-#     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-#     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-    
-#     # 是否匿名（默认False）
-#     is_anonymous = models.BooleanField(default=False, verbose_name="是否匿名")
-
-#     # 点赞
-#     likes = models.PositiveIntegerField(default=0, verbose_name="点赞数")
-
-#     def __str__(self):
-#         return f"{self.commenter} 评论 {self.slip.slip_id}"
-    
-#     class Meta:
-#         ordering = ['created_at']  # 默认按创建时间升序
-#         verbose_name = "集释评论"
-#         verbose_name_plural = "集释评论"
+    def __str__(self):
+        return f"{self.character.glyph} · {self.slip.slip_id} · 位置{self.position}"
 
 class Annotation(models.Model):
+    """ 集释模型：学者对竹简释文的评论、意见、证据等 """
     # 定义集释类型（下拉选择框）
     TYPE_CHOICES = [
         ('lishi', '隶定意见'),
@@ -148,8 +150,6 @@ class Annotation(models.Model):
         return self.content[:30] + '...' if len(self.content) > 30 else self.content
     content_preview.short_description = '集释预览'
 
-    from django.db import models
-
 class Character(models.Model):
     """独立存储每个字的信息"""
     glyph = models.CharField(max_length=10, unique=True, verbose_name="释读")
@@ -172,6 +172,9 @@ class Character(models.Model):
     def __str__(self):
         return self.glyph
 
+    def get_phonetic(self):
+        parts = [part for part in (self.initial, self.rhyme, self.pronunciation) if part]
+        return ' '.join(parts) if parts else ''
 
 class SlipChar(models.Model):
     """竹简上的字——关联竹简和字，并记录位置"""

@@ -1,106 +1,106 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ char.glyph }} · 字库</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'texts/css/style.css' %}">
-    <style>
-        .char-detail-container {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 30px 40px;
-            background-color: #fffcf8;
-            border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-        }
-        .char-header {
-            border-bottom: 2px solid #dacbb8;
-            padding-bottom: 16px;
-            margin-bottom: 24px;
-        }
-        .char-header h1 {
-            font-size: 48px;
-            font-weight: normal;
-            font-family: "KaiTi", "楷体", serif;
-            margin: 0;
-            color: #3d2c1b;
-        }
-        .char-meta {
-            font-size: 16px;
-            color: #7a5d3c;
-            margin-top: 6px;
-        }
-        .char-meta span {
-            margin-right: 20px;
-        }
-        .phonetic-box {
-            display: inline-block;
-            background-color: #efe8dd;
-            padding: 4px 16px;
-            border-radius: 20px;
-            font-size: 18px;
-        }
-        .occurrence-section {
-            margin-top: 30px;
-        }
-        .occurrence-section h2 {
-            font-size: 20px;
-            font-weight: normal;
-            color: #3d2c1b;
-            border-bottom: 1px solid #e6ddd0;
-            padding-bottom: 8px;
-            margin-bottom: 16px;
-        }
-        .chapter-group {
-            margin-bottom: 20px;
-        }
-        .chapter-group h3 {
-            font-size: 18px;
-            color: #7a5d3c;
-            margin-bottom: 8px;
-            font-weight: normal;
-        }
-        .occurrence-item {
-            padding: 6px 0 6px 16px;
-            border-left: 3px solid #dacbb8;
-            margin-bottom: 6px;
-            font-size: 16px;
-        }
-        .occurrence-item a {
-            color: #4d3822;
-            text-decoration: none;
-        }
-        .occurrence-item a:hover {
-            text-decoration: underline;
-        }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #7a5d3c;
-            text-decoration: none;
-        }
-        .back-link:hover {
-            text-decoration: underline;
-        }
-        .glyph-extra {
-            margin-top: 20px;
-            padding: 16px 20px;
-            background-color: #f5f0e8;
-            border-radius: 8px;
-        }
-        .glyph-extra .label {
-            font-weight: bold;
-            color: #5a4a3a;
-        }
-        .no-data {
-            color: #999;
-            font-style: italic;
-        }
-    </style>
-</head>
-<body>
+{% extends 'texts/base.html' %}
+{% load static %}
+
+{% block title %}{{ char.glyph }} · 字库{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'texts/css/style.css' %}">
+<style>
+    .char-detail-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 30px 40px;
+        background-color: #fffcf8;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .char-header {
+        border-bottom: 2px solid #dacbb8;
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+    }
+    .char-header h1 {
+        font-size: 48px;
+        font-weight: normal;
+        font-family: "KaiTi", "楷体", serif;
+        margin: 0;
+        color: #3d2c1b;
+    }
+    .char-meta {
+        font-size: 16px;
+        color: #7a5d3c;
+        margin-top: 6px;
+    }
+    .char-meta span {
+        margin-right: 20px;
+    }
+    .phonetic-box {
+        display: inline-block;
+        background-color: #efe8dd;
+        padding: 4px 16px;
+        border-radius: 20px;
+        font-size: 18px;
+    }
+    .occurrence-section {
+        margin-top: 30px;
+    }
+    .occurrence-section h2 {
+        font-size: 20px;
+        font-weight: normal;
+        color: #3d2c1b;
+        border-bottom: 1px solid #e6ddd0;
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+    }
+    .chapter-group {
+        margin-bottom: 20px;
+    }
+    .chapter-group h3 {
+        font-size: 18px;
+        color: #7a5d3c;
+        margin-bottom: 8px;
+        font-weight: normal;
+    }
+    .occurrence-item {
+        padding: 6px 0 6px 16px;
+        border-left: 3px solid #dacbb8;
+        margin-bottom: 6px;
+        font-size: 16px;
+    }
+    .occurrence-item a {
+        color: #4d3822;
+        text-decoration: none;
+    }
+    .occurrence-item a:hover {
+        text-decoration: underline;
+    }
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #7a5d3c;
+        text-decoration: none;
+    }
+    .back-link:hover {
+        text-decoration: underline;
+    }
+    .glyph-extra {
+        margin-top: 20px;
+        padding: 16px 20px;
+        background-color: #f5f0e8;
+        border-radius: 8px;
+    }
+    .glyph-extra .label {
+        font-weight: bold;
+        color: #5a4a3a;
+    }
+    .no-data {
+        color: #999;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
     <div class="char-detail-container">
         <a href="javascript:history.back()" class="back-link">← 返回</a>
 
@@ -148,5 +148,4 @@
             {% endif %}
         </div>
     </div>
-</body>
-</html>
+{% endblock %}

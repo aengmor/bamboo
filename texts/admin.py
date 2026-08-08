@@ -1,6 +1,6 @@
 from adminsortable2.admin import SortableAdminMixin
 from django.contrib import admin
-from .models import Character, SlipChar, SlipText, Chapter, Annotation
+from .models import Character, SlipChar, SlipText, Chapter, Annotation, Glyph
 
 @admin.register(SlipText)
 class SlipTextAdmin(SortableAdminMixin, admin.ModelAdmin):
@@ -64,3 +64,17 @@ class SlipCharAdmin(admin.ModelAdmin):
     list_display = ('slip', 'character', 'position')
     list_filter = ('slip',)
     search_fields = ('slip__slip_id', 'character__glyph')
+
+@admin.register(Glyph)
+class GlyphAdmin(admin.ModelAdmin):
+    list_display = ('character', 'slip', 'position', 'image_preview')
+    list_filter = ('character', 'slip')
+    search_fields = ('character__glyph', 'slip__slip_id')
+    list_editable = ('position',)
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return f'<img src="{obj.image.url}" style="width:50px;height:50px;object-fit:contain;" />'
+        return "无图片"
+    image_preview.allow_tags = True
+    image_preview.short_description = "预览"

@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from django.db.models import Q
-from .models import SlipText, Chapter, Character, SlipChar, Annotation
+from django.db.models import Q, Prefetch
+from .models import SlipText, Chapter, Character, SlipChar, Annotation, Glyph
 from .forms import AnnotationForm
 
 def home(request):
@@ -77,9 +77,21 @@ def slip_list(request):
 def slip_detail(request, pk):
     slip = get_object_or_404(SlipText.objects.select_related('chapter'), pk=pk)
 
-    # 获取该简上的所有字，按位置排序
-    chars = slip.slipchars.all().select_related('character').order_by('position')
+    # 获取该简上的所有字，按位置排序；预取当前简的字形图片，避免 N+1 查询
+    chars = slip.slipchars.select_related('character').prefetch_related(
+        Prefetch(
+            'character__glyphs',
+            queryset=Glyph.objects.filter(slip=slip),
+            to_attr='slip_glyphs'
+        )
+    ).order_by('position')
 
+    for sc in chars:
+        sc.glyph_obj = next(
+            (g for g in getattr(sc.character, 'slip_glyphs', []) if g.position == sc.position),
+            None
+        )
+    
     if request.method == 'POST':
         form = AnnotationForm(request.POST)
         if form.is_valid():
@@ -116,35 +128,32 @@ def character_detail(request, pk):
     # 按篇目分组
     chapter_dict = {}
     total_count = 0
+
+    slip_ids = [sc.slip_id for sc in occurrences]
+    slipchars_by_slip = {}
+    if slip_ids:
+        for c in SlipChar.objects.filter(slip_id__in=slip_ids).select_related('character').order_by('slip_id', 'position'):
+            slipchars_by_slip.setdefault(c.slip_id, []).append(c)
+
     for sc in occurrences:
         total_count += 1
         chapter_title = sc.slip.chapter.title if sc.slip.chapter else "未分类"
         if chapter_title not in chapter_dict:
             chapter_dict[chapter_title] = []
         
-        # 获取上下文片段（前后各3个字）
-        # 获取该简的所有字，按位置排序
-        chars_in_slip = SlipChar.objects.filter(slip=sc.slip).select_related('character').order_by('position')
-        char_list = list(chars_in_slip)
+        char_list = slipchars_by_slip.get(sc.slip_id, [])
         # 找到当前字在列表中的索引
-        idx = -1
-        for i, c in enumerate(char_list):
-            if c.pk == sc.pk:
-                idx = i
-                break
+        idx = next((i for i, c in enumerate(char_list) if c.pk == sc.pk), -1)
+
         context_before = ''
         context_after = ''
         if idx != -1:
-            # 取前3个字（如果存在）
             before = char_list[max(0, idx-10):idx]
             context_before = ''.join([c.character.glyph for c in before])
-            # 取后3个字（如果存在）
             after = char_list[idx+1:min(len(char_list), idx+11)]
             context_after = ''.join([c.character.glyph for c in after])
-        # 组装上下文片段：前3个字 + [该字] + 后3个字
-        context_str = f"{context_before}【{char.glyph}】{context_after}"
         
-        # 将上下文片段和位置信息存入该 occurrence 对象（临时属性）
+        context_str = f"{context_before}【{char.glyph}】{context_after}"
         sc.context = context_str
         sc.before = context_before
         sc.after = context_after
