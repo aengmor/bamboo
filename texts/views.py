@@ -1,3 +1,5 @@
+import random
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db.models import Q, Prefetch
@@ -15,8 +17,13 @@ def home(request):
     # 最近更新的竹简（取最近添加的5条）
     recent_slips = SlipText.objects.order_by('-id')[:5]
     
-    # 随机展示一条集释（如果有的话）
-    random_annotation = Annotation.objects.filter(is_approved=True).order_by('?').first()
+    # 随机展示一条集释（如果有的话），避免 order_by('?') 的性能问题
+    approved_annotations = Annotation.objects.filter(is_approved=True)
+    random_annotation = None
+    annotation_count = approved_annotations.count()
+    if annotation_count:
+        random_index = random.randrange(annotation_count)
+        random_annotation = approved_annotations.all()[random_index]
     
     context = {
         'total_chapters': total_chapters,
@@ -30,7 +37,6 @@ def home(request):
 
 def slip_list(request):
     query = request.GET.get('q', '').strip()
-    chapters = Chapter.objects.all().order_by('title')
     chapter_id = request.GET.get('chapter', '').strip()
 
     selected_chapter = None
@@ -38,30 +44,22 @@ def slip_list(request):
         selected_chapter = Chapter.objects.filter(id=int(chapter_id)).first()
 
     queryset = SlipText.objects.select_related('chapter').all()
-
     if query:
         queryset = queryset.filter(
             Q(content__icontains=query) | Q(slip_id__icontains=query)
         )
-    
     if chapter_id and chapter_id.isdigit():
         queryset = queryset.filter(chapter_id=int(chapter_id))
-    
-    chapter_data = []
-    chapter_ids_in_queryset = queryset.values_list('chapter_id', flat=True).distinct()
-    for ch in chapters:
-        if ch.id not in chapter_ids_in_queryset:
-            continue
-        slips_in_chapter = queryset.filter(chapter=ch)
-        if slips_in_chapter.exists():
-            try:
-                slips_sorted = slips_in_chapter.order_by('order', 'slip_id')
-            except:
-                slips_sorted = slips_in_chapter.order_by('slip_id')
-            chapter_data.append({
-                'chapter': ch,
-                'slips': slips_sorted,
-            })
+
+    chapters = Chapter.objects.order_by('title').prefetch_related(
+        Prefetch('slip_texts', queryset=queryset.order_by('order', 'slip_id'), to_attr='filtered_slips')
+    )
+
+    chapter_data = [
+        {'chapter': ch, 'slips': ch.filtered_slips}
+        for ch in chapters
+        if getattr(ch, 'filtered_slips', [])
+    ]
     
     context = {
         'chapter_data': chapter_data,
