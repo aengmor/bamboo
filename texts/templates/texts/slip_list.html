@@ -15,7 +15,7 @@
 
         {% if selected_chapter %}
         <p><a href="{% url 'chapter_list' %}" class="back-link">← 返回篇章目录</a></p>
-        <h2 style="margin-top:0; color:#7a5d3c; font-weight:normal;">{{ selected_chapter.title }}</h2>
+        <h2 class="chapter-subtitle">{{ selected_chapter.title }}</h2>
         {% else %}
         <!-- 可选：在全部浏览时显示一个指向目录的链接 -->
         <p><a href="{% url 'chapter_list' %}" class="back-link">📚 浏览篇章目录</a></p>
@@ -47,6 +47,33 @@
         <p class="result-info">找到 {{ query_count }} 条释文</p>
         {% endif %}
 
+        <!-- 如果存在 paginated_slips，显示分页平铺列表（用于搜索和按篇过滤） -->
+        {% if paginated_slips %}
+            <div class="slip-list">
+                {% for item in paginated_slips %}
+                <div class="slip-item">
+                    <a href="{% url 'slip_detail' pk=item.pk %}" class="slip-link">
+                        <span class="slip-id">{{ item.slip_id }}</span>
+                        <span class="slip-content">{{ item.content|linebreaksbr|highlight:query}}</span>
+                    </a>
+                </div>
+                {% empty %}
+                <div class="empty-msg">暂无匹配的释文。</div>
+                {% endfor %}
+            </div>
+
+            {% if paginator and page_obj %}
+            <div class="pagination" aria-label="分页">
+                {% if page_obj.has_previous %}
+                    <a href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.previous_page_number }}" class="button ghost">上一页</a>
+                {% endif %}
+                <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
+                {% if page_obj.has_next %}
+                    <a href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.next_page_number }}" class="button ghost">下一页</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% else %}
         <!-- 按篇展示 -->
         {% for group in chapter_data %}
         <!-- 篇与篇之间隔开 -->
@@ -54,12 +81,12 @@
         <hr class="chapter-divider">
         {% endif %}
 
-        <h1 class="chapter">{{ group.chapter.title }}</h1>
+        <h1 class="chapter-title">{{ group.chapter.title }}</h1>
 
         <div class="slip-list">
             {% for item in group.slips %}
             <div class="slip-item">
-                <a href="{% url 'slip_detail' pk=item.pk %}" style="text-decoration: none; color: inherit;">
+                <a href="{% url 'slip_detail' pk=item.pk %}" class="slip-link">
                     <span class="slip-id">{{ item.slip_id }}</span>
                     <span class="slip-content">{{ item.content|linebreaksbr|highlight:query}}</span>
                 </a>
@@ -71,6 +98,19 @@
         {% empty %}
         <div class="empty-msg">📭 暂无释文数据。</div>
         {% endfor %}
+
+        {% if paginator and page_obj and page_obj.has_other_pages %}
+        <div class="pagination" aria-label="篇章分页">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="button ghost">上一页</a>
+            {% endif %}
+            <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="button ghost">下一页</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endif %}
     
     
 {% endblock %}

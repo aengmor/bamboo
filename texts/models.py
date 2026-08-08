@@ -42,7 +42,7 @@ class SlipText(models.Model):
     image = models.ImageField(upload_to='slips/', blank=True, null=True, verbose_name="图版")
 
     def __str__(self):
-        return self.content
+        return self.slip_id
 
     class Meta:
         ordering = ['order'] 

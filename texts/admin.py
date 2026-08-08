@@ -1,5 +1,6 @@
 from adminsortable2.admin import SortableAdminMixin
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import Character, SlipChar, SlipText, Chapter, Annotation, Glyph
 
 @admin.register(SlipText)
@@ -71,10 +72,17 @@ class GlyphAdmin(admin.ModelAdmin):
     list_filter = ('character', 'slip')
     search_fields = ('character__glyph', 'slip__slip_id')
     list_editable = ('position',)
-    
+
+    class Media:
+        css = {
+            'all': ('texts/css/admin.css',)
+        }
+
     def image_preview(self, obj):
         if obj.image:
-            return f'<img src="{obj.image.url}" style="width:50px;height:50px;object-fit:contain;" />'
+            return format_html(
+                '<img class="glyph-image-preview" src="{}" />',
+                obj.image.url
+            )
         return "无图片"
-    image_preview.allow_tags = True
     image_preview.short_description = "预览"

@@ -2,9 +2,14 @@ import random
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from django.db.models import Q, Prefetch
+from django.db.models import Count, Q, Prefetch
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from urllib.parse import urlencode
 from .models import SlipText, Chapter, Character, SlipChar, Annotation, Glyph
 from .forms import AnnotationForm
+
+# 这是应用的视图文件，负责把数据库中的数据读取出来，传给前端模板显示。
+# 所有函数都返回一个 render(request, template, context) 用于渲染页面。
 
 def home(request):
     """首页"""
@@ -14,16 +19,16 @@ def home(request):
     total_chars = Character.objects.count()
     total_annotations = Annotation.objects.filter(is_approved=True).count()
     
-    # 最近更新的竹简（取最近添加的5条）
-    recent_slips = SlipText.objects.order_by('-id')[:5]
+    # 最近更新的竹简（取最近添加的5条），预取篇目避免模板中 N+1 查询
+    recent_slips = SlipText.objects.select_related('chapter').order_by('-id')[:5]
     
-    # 随机展示一条集释（如果有的话），避免 order_by('?') 的性能问题
+    # 随机展示一条已审批的集释，避免使用 inefficient order_by('?')
     approved_annotations = Annotation.objects.filter(is_approved=True)
     random_annotation = None
     annotation_count = approved_annotations.count()
     if annotation_count:
         random_index = random.randrange(annotation_count)
-        random_annotation = approved_annotations.all()[random_index]
+        random_annotation = approved_annotations[random_index]
     
     context = {
         'total_chapters': total_chapters,
@@ -36,8 +41,14 @@ def home(request):
     return render(request, 'texts/home.html', context)
 
 def slip_list(request):
+    """竹简释文列表页，支持搜索、按篇章过滤和分页。"""
     query = request.GET.get('q', '').strip()
     chapter_id = request.GET.get('chapter', '').strip()
+    page = request.GET.get('page', 1)
+
+    # preserve other GET params for pagination links (exclude page)
+    other_get = {k: v for k, v in request.GET.items() if k != 'page' and v != ''}
+    get_params = urlencode(other_get)
 
     selected_chapter = None
     if chapter_id and chapter_id.isdigit():
@@ -51,18 +62,48 @@ def slip_list(request):
     if chapter_id and chapter_id.isdigit():
         queryset = queryset.filter(chapter_id=int(chapter_id))
 
-    chapters = Chapter.objects.order_by('title').prefetch_related(
-        Prefetch('slip_texts', queryset=queryset.order_by('order', 'slip_id'), to_attr='filtered_slips')
-    )
+    # If user searched or selected a chapter, present a paginated flat list of slips
+    paginated_slips = None
+    paginator = None
+    page_obj = None
+    if query or (chapter_id and chapter_id.isdigit()):
+        slips_qs = queryset.order_by('order', 'slip_id')
+        paginator = Paginator(slips_qs, 20)
+        try:
+            page_obj = paginator.page(page)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+        paginated_slips = page_obj.object_list
+        chapters = Chapter.objects.order_by('title')
+        chapter_data = []
+    else:
+        # no filter: 分页展示篇章分组，避免全部篇章一次性加载
+        chapters_qs = Chapter.objects.order_by('title').prefetch_related(
+            Prefetch('slip_texts', queryset=queryset.order_by('order', 'slip_id'), to_attr='filtered_slips')
+        )
+        paginator = Paginator(chapters_qs, 10)
+        try:
+            page_obj = paginator.page(page)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
 
-    chapter_data = [
-        {'chapter': ch, 'slips': ch.filtered_slips}
-        for ch in chapters
-        if getattr(ch, 'filtered_slips', [])
-    ]
+        chapters = page_obj.object_list
+        chapter_data = [
+            {'chapter': ch, 'slips': ch.filtered_slips}
+            for ch in chapters
+            if getattr(ch, 'filtered_slips', [])
+        ]
     
     context = {
         'chapter_data': chapter_data,
+        'paginated_slips': paginated_slips,
+        'paginator': paginator,
+        'page_obj': page_obj,
+        'get_params': get_params,
         'query': query,
         'chapters': chapters,
         'selected_chapter_id': int(chapter_id) if chapter_id.isdigit() else None,
@@ -106,41 +147,71 @@ def slip_detail(request, pk):
     else:
         form = AnnotationForm()
     
-    # 获取该简下已审核的集释
-    annotations = slip.annotations.filter(is_approved=True).order_by('-created_at')
+    # 获取该简下已审核的集释，并分页显示，避免注释过多时页面过长
+    annotations_qs = slip.annotations.filter(is_approved=True).order_by('-created_at')
+    annotation_page = request.GET.get('anno_page', 1)
+    annotation_paginator = Paginator(annotations_qs, 8)
+    try:
+        annotation_obj = annotation_paginator.page(annotation_page)
+    except PageNotAnInteger:
+        annotation_obj = annotation_paginator.page(1)
+    except EmptyPage:
+        annotation_obj = annotation_paginator.page(annotation_paginator.num_pages)
     
     context = {
         'slip': slip,
         'chars': chars,
         'form': form,
-        'annotations': annotations,
+        'annotations': annotation_obj.object_list,
+        'annotation_paginator': annotation_paginator,
+        'annotation_page_obj': annotation_obj,
     }
     return render(request, 'texts/slip_detail.html', context)
 
 def character_detail(request, pk):
     char = get_object_or_404(Character, pk=pk)
     
-    # 获取该字出现的所有位置（按篇目排序）
-    occurrences = SlipChar.objects.filter(character=char).select_related('slip__chapter').order_by('slip__chapter__title', 'slip__slip_id', 'position')
-    
-    # 按篇目分组
-    chapter_dict = {}
-    total_count = 0
+    # 获取该字出现的所有位置（按篇目分组），并预取当前简的所有字，避免 N+1 查询
+    occurrences_qs = SlipChar.objects.filter(character=char).select_related('slip__chapter').prefetch_related(
+        Prefetch(
+            'slip__slipchars',
+            queryset=SlipChar.objects.select_related('character').order_by('position'),
+            to_attr='slip_chars'
+        )
+    ).order_by('slip__chapter__title', 'slip__slip_id', 'position')
 
-    slip_ids = [sc.slip_id for sc in occurrences]
-    slipchars_by_slip = {}
-    if slip_ids:
-        for c in SlipChar.objects.filter(slip_id__in=slip_ids).select_related('character').order_by('slip_id', 'position'):
-            slipchars_by_slip.setdefault(c.slip_id, []).append(c)
+    # 分页处理出现位置，避免单页过长
+    page = request.GET.get('page', 1)
+    occurrence_paginator = Paginator(occurrences_qs, 20)
+    try:
+        occurrence_page = occurrence_paginator.page(page)
+    except PageNotAnInteger:
+        occurrence_page = occurrence_paginator.page(1)
+    except EmptyPage:
+        occurrence_page = occurrence_paginator.page(occurrence_paginator.num_pages)
+
+    occurrences = list(occurrence_page.object_list)
+    
+    chapter_dict = {}
+    # total_count 直接使用 queryset.count()，避免重复计算
+    total_count = occurrences_qs.count()
+
+    # 生成一个包含全部出现位置的快速跳转列表，方便用户在分页之外直接选择任一位置
+    picker_groups = []
+    last_chapter = None
+    for row in occurrences_qs.values('slip__chapter__title', 'slip__slip_id', 'slip__pk', 'position'):
+        chapter_title = row['slip__chapter__title'] or "未分类"
+        if chapter_title != last_chapter:
+            picker_groups.append({'chapter_title': chapter_title, 'items': []})
+            last_chapter = chapter_title
+        picker_groups[-1]['items'].append(row)
 
     for sc in occurrences:
-        total_count += 1
         chapter_title = sc.slip.chapter.title if sc.slip.chapter else "未分类"
         if chapter_title not in chapter_dict:
             chapter_dict[chapter_title] = []
         
-        char_list = slipchars_by_slip.get(sc.slip_id, [])
-        # 找到当前字在列表中的索引
+        char_list = getattr(sc.slip, 'slip_chars', [])
         idx = next((i for i, c in enumerate(char_list) if c.pk == sc.pk), -1)
 
         context_before = ''
@@ -158,20 +229,36 @@ def character_detail(request, pk):
         
         chapter_dict[chapter_title].append(sc)
     
-    # 统计出现次数（按篇目分）
-    chapter_stats = {}
-    for ch_title, sc_list in chapter_dict.items():
-        chapter_stats[ch_title] = len(sc_list)
+    chapter_stats = {ch_title: len(sc_list) for ch_title, sc_list in chapter_dict.items()}
     
     context = {
         'char': char,
         'occurrences': occurrences,
         'chapter_dict': chapter_dict,
+        'picker_groups': picker_groups,
         'total_count': total_count,
         'chapter_stats': chapter_stats,
+        'occurrence_paginator': occurrence_paginator,
+        'occurrence_page_obj': occurrence_page,
     }
     return render(request, 'texts/character_detail.html', context)
 
+
 def chapter_list(request):
-    chapters = Chapter.objects.all().order_by('title')
-    return render(request, 'texts/chapter_list.html', {'chapters': chapters})
+    """篇章目录页，带分页"""
+    page = request.GET.get('page', 1)
+    chapters_qs = Chapter.objects.annotate(slips_count=Count('slip_texts')).order_by('title')
+    paginator = Paginator(chapters_qs, 20)
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    context = {
+        'chapters': page_obj.object_list,
+        'paginator': paginator,
+        'page_obj': page_obj,
+    }
+    return render(request, 'texts/chapter_list.html', context)

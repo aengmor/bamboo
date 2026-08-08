@@ -1,315 +1,225 @@
 {% extends 'texts/base.html' %}
-{% load static %}
 
+{# 竹简详情页模板：显示字形、注音、竹简图、集释列表和分页提交表单 #}
 {% block title %}{{ slip.slip_id }} · 竹简释文{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'texts/css/style.css' %}">
-<style>
-.detail-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 40px 50px;
-    background-color: #fffcf8;
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.back-link {
-    display: inline-block;
-    margin-bottom: 20px;
-    color: #7a5d3c;
-    text-decoration: none;
-}
-
-.back-link:hover {
-    text-decoration: underline;
-}
-
-.toolbar {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 16px;
-}
-
-.detail-header {
-    border-bottom: 2px solid #dacbb8;
-    padding-bottom: 16px;
-    margin-bottom: 24px;
-}
-
-.detail-title {
-    font-size: 28px;
-    font-weight: normal;
-    color: #3d2c1b;
-    margin: 0;
-}
-
-.detail-meta {
-    font-size: 15px;
-    color: #7a5d3c;
-    margin-top: 6px;
-}
-
-.detail-meta span {
-    margin-right: 20px;
-}
-
-.detail-content {
-    font-size: 22px;
-    line-height: 2;
-    font-family: "KaiTi", "楷体", serif;
-    padding: 20px 0;
-    text-indent: 2em;
-    letter-spacing: 0.5px;
-}
-
-.detail-content .char-link {
-    text-decoration: none;
-    color: inherit;
-    display: inline-block;
-    margin: 0 2px;
-}
-
-.detail-content .char-image {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    vertical-align: middle;
-    border: 1px solid #e6ddd0;
-    border-radius: 3px;
-    display: inline-block;
-}
-
-.detail-content .char-placeholder {
-    display: inline-block;
-    width: 24px;
-    height: 24px;
-    vertical-align: middle;
-    border: 1px solid #e6ddd0;
-    border-radius: 3px;
-}
-
-.info-section {
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #ede6db;
-}
-
-.info-section h3 {
-    font-size: 18px;
-    font-weight: normal;
-    color: #7a5d3c;
-    margin-bottom: 10px;
-}
-
-.info-section p {
-    font-size: 16px;
-    color: #4d3a2a;
-    line-height: 1.8;
-}
-
-.jishi-section {
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 2px dashed #dacbb8;
-}
-
-.jishi-section h3 {
-    font-size: 20px;
-    font-weight: normal;
-    color: #3d2c1b;
-    margin-bottom: 16px;
-}
-
-.jishi-placeholder {
-    color: #999;
-    font-style: italic;
-    padding: 20px;
-    background-color: #f5f0e8;
-    border-radius: 8px;
-    text-align: center;
-}
-
-.annotation-header {
-    font-size: 14px;
-    color: #7a5d3c;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-}
-
-.annotation-title {
-    margin-left: auto;
-    font-weight: bold;
-}
-
-.annotation-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-}
-
-.anno-content {
-    font-size: 16px;
-    line-height: 1.8;
-    margin-top: 6px;
-}
-
-.anno-evidence {
-    margin-top: 8px;
-    font-size: 15px;
-    color: #4d3a2a;
-}
-</style>
 {% endblock %}
 
 {% block content %}
-<div class="detail-container">
-    <a href="{% url 'slip_list' %}" class="back-link">← 返回列表</a>
 
-    <span class="toolbar">
-        <button id="toggle-phonetic">🔊 隐藏注音</button>
-    </span>
+<a href="{% url 'slip_list' %}" class="back-link">← 返回列表</a>
 
-    <div class="detail-header">
+<span class="toolbar">
+    <button id="toggle-phonetic">🔊 隐藏注音</button>
+    <button id="toggle-slip-image">🖼️ 隐藏竹简图</button>
+    <button id="toggle-glyph">🔍 隐藏字形图</button>
+</span>
 
-            <h1 class="detail-title">{{ slip.slip_id }}</h1>
-            <div class="detail-meta">
-                <span>📂 篇目：{{ slip.chapter.title|default:"?" }}</span>
-                <span>📝 简号：{{ slip.slip_id|default:"?" }}</span>
-                {% if slip.source %}
-                <span>📖 出处：{{ slip.source|default:"?" }}</span>
-                {% endif %}
-                {% if slip.parallel_text %}
-                <span>🔁 对读：{{ slip.parallel_text|default:"?" }}</span>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- 释文正文 -->
-        <div class="detail-content">
-            {% for sc in chars %}
-            <a href="{% url 'character_detail' pk=sc.character.pk %}" class="char-link">
-                {% if sc.glyph_obj and sc.glyph_obj.image %}
-                <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
-                {% else %}
-                <span class="char-placeholder"></span>
-                {% endif %}
-                <ruby class="char-ruby">
-                    {{ sc.character.glyph }}
-                    <rt>{{ sc.character.pronunciation }}</rt>
-                </ruby>
-            </a>
-            {% empty %}
-            该简暂无释文。
-            {% endfor %}
-        </div>
-
-        <!-- 扩展信息区（如果将来还有其他字段） -->
-        {% if slip.source or slip.parallel_text %}
-        <div class="info-section">
-            <h3>📌 补充信息</h3>
-            {% if slip.source %}
-            <p><strong>出处：</strong>{{ slip.source }}</p>
-            {% endif %}
-            {% if slip.parallel_text %}
-            <p><strong>对读文献：</strong>{{ slip.parallel_text }}</p>
-            {% endif %}
-        </div>
+<div class="detail-header">
+    <h1 class="detail-title">{{ slip.slip_id }}</h1>
+    <div class="detail-meta">
+        <span>📂 篇目：{{ slip.chapter.title|default:"?" }}</span>
+        <span>📝 简号：{{ slip.slip_id|default:"?" }}</span>
+        {% if slip.source %}
+        <span>📖 出处：{{ slip.source|default:"?" }}</span>
         {% endif %}
-
-        {% if slip.image %}
-        <div class="slip-image">
-            <img src="{{ slip.image.url }}" alt="{{ slip.slip_id }}">
-        </div>
+        {% if slip.parallel_text %}
+        <span>🔁 对读：{{ slip.parallel_text|default:"?" }}</span>
         {% endif %}
-
-        <!-- 集释区域 -->
-        <div class="jishi-section">
-            <h3>📝 集释 · 讨论</h3>
-
-            <!-- 显示消息（成功/失败提示） -->
-            {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                <div class="message {{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <!-- 显示已有的集释 -->
-            <div class="annotations-list">
-                {% for anno in annotations %}
-                <div class="annotation-item">
-                    <div class="annotation-header">
-                        <span class="anno-author">{{ anno.author }}</span>
-                        <span class="anno-type">{{ anno.get_annotation_type_display }}</span>
-                        <span class="anno-confidence">可靠度{{ anno.confidence }}/5</span>
-                        {% if anno.title %}
-                        <span class="anno-title">{{ anno.title }}</span>
-                        {% endif %}
-                        <span class="anno-date">{{ anno.created_at|date:"Y-m-d"}}</span>
-                    </div>
-                    <div class="anno-content">
-                        {{anno.content|linebreaksbr }}</div>
-                    {% if anno.evidence %}
-                    <div class="anno-evidence">
-                        <strong>📖 证据：</strong>{{ anno.evidence|linebreaksbr }}
-                    </div>
-                    {% endif %}
-                </div>
-                {% empty %}
-                <div class="jishi-placeholder">
-                    📭 暂无集释。欢迎学者提交您的见解。
-                </div>
-                {% endfor %}
-            </div>
-
-            <!-- 提交集释表单 -->
-            <div class="submit-form">
-                <h4>✍️ 提交您的集释</h4>
-                <p class="form-tip">集释将经过审核后显示。请提供尽可能详实的证据。</p>
-                <form method="post" action="">
-                    {% csrf_token %}
-                    <div class="form-row">
-                        <div class="form-field half">
-                            {{ form.author.label_tag }}
-                            {{ form.author }}
-                        </div>
-                        <div class="form-field half">
-                            {{ form.annotation_type.label_tag }}
-                            {{ form.annotation_type }}
-                        </div>
-                    </div>
-                    <div class="form-field">
-                        {{ form.title.label_tag }}
-                        {{ form.title }}
-                    </div>
-                    <div class="form-field">
-                        {{ form.content.label_tag }}
-                        {{ form.content }}
-                    </div>
-                    <div class="form-field">
-                        {{ form.evidence.label_tag }}
-                        {{ form.evidence }}
-                    </div>
-                    <button type="submit" class="submit-btn">提交集释</button>
-                </form>
-            </div>
-        </div>
     </div>
+</div>
+
+<div class="detail-content">
+    {% for sc in chars %}
+    <a href="{% url 'character_detail' pk=sc.character.pk %}" class="char-link" data-position="{{ sc.position }}"
+        id="char-pos-{{ sc.position }}">
+        {% if sc.glyph_obj and sc.glyph_obj.image %}
+        <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
+        {% else %}
+        <span class="char-placeholder"></span>
+        {% endif %}
+        <ruby class="char-ruby">
+            {{ sc.character.glyph }}
+            <rt>{{ sc.character.pronunciation }}</rt>
+        </ruby>
+    </a>
+    {% empty %}
+    该简暂无释文。
+    {% endfor %}
+</div>
+
+{% if slip.source or slip.parallel_text %}
+<div class="info-section">
+    <h3>📌 补充信息</h3>
+    {% if slip.source %}
+    <p><strong>出处：</strong>{{ slip.source }}</p>
+    {% endif %}
+    {% if slip.parallel_text %}
+    <p><strong>对读文献：</strong>{{ slip.parallel_text }}</p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if slip.image %}
+<div class="slip-image">
+    <img src="{{ slip.image.url }}" alt="{{ slip.slip_id }}">
+</div>
+{% endif %}
+
+<div class="jishi-section">
+    <h3>📝 集释 · 讨论</h3>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="message {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="annotations-list">
+        {% for anno in annotations %}
+        <div class="annotation-item">
+            <div class="annotation-header">
+                <span class="anno-author">{{ anno.author }}</span>
+                <span class="anno-type">{{ anno.get_annotation_type_display }}</span>
+                <span class="anno-confidence">可靠度{{ anno.confidence }}/5</span>
+                {% if anno.title %}
+                <span class="anno-title">{{ anno.title }}</span>
+                {% endif %}
+                <span class="anno-date">{{ anno.created_at|date:"Y-m-d"}}</span>
+            </div>
+            <div class="anno-content">
+                {{ anno.content|linebreaksbr }}
+            </div>
+            {% if anno.evidence %}
+            <div class="anno-evidence">
+                <strong>📖 证据：</strong>{{ anno.evidence|linebreaksbr }}
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="jishi-placeholder">
+            📭 暂无集释。欢迎学者提交您的见解。
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if annotation_paginator and annotation_page_obj and annotation_page_obj.has_other_pages %}
+    <div class="pagination" aria-label="集释分页">
+        {% if annotation_page_obj.has_previous %}
+        <a href="?anno_page={{ annotation_page_obj.previous_page_number }}" class="button ghost">上一页</a>
+        {% endif %}
+        <span class="page-info">第 {{ annotation_page_obj.number }} / {{ annotation_paginator.num_pages }} 页</span>
+        {% if annotation_page_obj.has_next %}
+        <a href="?anno_page={{ annotation_page_obj.next_page_number }}" class="button ghost">下一页</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="submit-form">
+        <h4>✍️ 提交您的集释</h4>
+        <p class="form-tip">集释将经过审核后显示。请提供尽可能详实的证据。</p>
+        <form method="post" action="">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-field half">
+                    {{ form.author.label_tag }}
+                    {{ form.author }}
+                </div>
+                <div class="form-field half">
+                    {{ form.annotation_type.label_tag }}
+                    {{ form.annotation_type }}
+                </div>
+            </div>
+            <div class="form-field">
+                {{ form.title.label_tag }}
+                {{ form.title }}
+            </div>
+            <div class="form-field">
+                {{ form.content.label_tag }}
+                {{ form.content }}
+            </div>
+            <div class="form-field">
+                {{ form.evidence.label_tag }}
+                {{ form.evidence }}
+            </div>
+            <button type="submit" class="submit-btn">提交集释</button>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    document.getElementById('toggle-phonetic').addEventListener('click', function () {
+    (function () {
         const content = document.querySelector('.detail-content');
-        content.classList.toggle('phonetic-hidden');
-        content.classList.toggle('phonetic-visible');
-        this.textContent = content.classList.contains('phonetic-hidden') ? '🔊 显示注音' : '🔊 隐藏注音';
-    });
+        const slipImage = document.querySelector('.slip-image');
+        const glyphBtn = document.getElementById('toggle-glyph');
+        const phoneticBtn = document.getElementById('toggle-phonetic');
+        const slipImgBtn = document.getElementById('toggle-slip-image');
+
+        function updateButtons() {
+            phoneticBtn.textContent = content.classList.contains('phonetic-hidden') ? '🔊 显示注音' : '🔊 隐藏注音';
+            glyphBtn.textContent = content.classList.contains('glyph-hidden') ? '🔍 显示字形图' : '🔍 隐藏字形图';
+            if (!slipImage) {
+                slipImgBtn.textContent = '🖼️ 无竹简图';
+                slipImgBtn.disabled = true;
+                return;
+            }
+            slipImgBtn.textContent = slipImage.classList.contains('hide-slip-image') ? '🖼️ 显示竹简图' : '🖼️ 隐藏竹简图';
+            slipImgBtn.disabled = false;
+        }
+
+        phoneticBtn.addEventListener('click', function () {
+            const isHidden = content.classList.toggle('phonetic-hidden');
+            localStorage.setItem('phoneticHidden', isHidden ? '1' : '0');
+            updateButtons();
+        });
+
+        glyphBtn.addEventListener('click', function () {
+            const isHidden = content.classList.toggle('glyph-hidden');
+            localStorage.setItem('hideGlyphs', isHidden ? '1' : '0');
+            updateButtons();
+        });
+
+        if (slipImgBtn) {
+            slipImgBtn.addEventListener('click', function () {
+                if (!slipImage) {
+                    return;
+                }
+                const isHidden = slipImage.classList.toggle('hide-slip-image');
+                localStorage.setItem('hideSlipImage', isHidden ? '1' : '0');
+                updateButtons();
+            });
+        }
+
+        if (localStorage.getItem('phoneticHidden') === '1') {
+            content.classList.add('phonetic-hidden');
+        }
+        if (localStorage.getItem('hideGlyphs') === '1') {
+            content.classList.add('glyph-hidden');
+        }
+        if (slipImage && localStorage.getItem('hideSlipImage') === '1') {
+            slipImage.classList.add('hide-slip-image');
+        }
+        if (!slipImage && slipImgBtn) {
+            slipImgBtn.style.display = 'none';
+        }
+        updateButtons();
+
+        const params = new URLSearchParams(window.location.search);
+        const highlightPos = params.get('highlight_pos');
+        if (highlightPos) {
+            const el = document.querySelector('[data-position="' + highlightPos + '"]');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('highlight');
+                setTimeout(() => el.classList.remove('highlight'), 3600);
+            }
+        }
+    })();
 </script>
 {% endblock %}

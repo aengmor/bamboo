@@ -1,22 +1,35 @@
 {% extends 'texts/base.html' %}
 
+{# 篇章目录页模板：显示分页后的篇章列表 #}
 {% block title %}篇章目录 · 先秦出土文献数据库{% endblock %}
 
 {% block content %}
     <h1>📚 篇章目录</h1>
     {% if chapters %}
-        <ul class="chapter-list" style="list-style:none; padding:0; margin:20px 0;">
+        <ul class="chapter-list">
             {% for ch in chapters %}
-                <li style="padding:12px 16px; border-bottom:1px solid #ede6db; font-size:18px;">
-                    <a href="{% url 'slip_list' %}?chapter={{ ch.id }}" style="color:#3d2c1b; text-decoration:none; display:block;">
+                <li class="chapter-item">
+                    <a href="{% url 'slip_list' %}?chapter={{ ch.id }}">
                         {{ ch.title }}
-                        <span style="float:right; color:#aa9b88; font-size:14px;">{{ ch.sliptext_set.count }} 简</span>
+                        <span class="chapter-count">{{ ch.slips_count }} 简</span>
                     </a>
                 </li>
             {% endfor %}
         </ul>
+
+        {% if paginator and page_obj %}
+        <div class="pagination" aria-label="分页">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="button ghost">上一页</a>
+            {% endif %}
+            <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="button ghost">下一页</a>
+            {% endif %}
+        </div>
+        {% endif %}
     {% else %}
         <p class="empty-msg">暂无篇章数据。</p>
     {% endif %}
-    <p><a href="{% url 'home' %}" style="color:#7a5d3c;">← 返回首页</a></p>
+    <p><a href="{% url 'home' %}" class="page-back-link">← 返回首页</a></p>
 {% endblock %}
