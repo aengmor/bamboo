@@ -17,8 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from texts import views
+from django.conf.urls.static import static
+from django.conf import settings
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.slip_list, name='slip_list'),
+    path('', views.home, name='home'),  # 首页
+    path('all/', views.slip_list, name='slip_list'),
     path('slip/<int:pk>/', views.slip_detail, name='slip_detail'),
-]
+    path('character/<int:pk>/', views.character_detail, name='character_detail'),
+    path('chapters/', views.chapter_list, name='chapter_list'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

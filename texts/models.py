@@ -39,6 +39,7 @@ class SlipText(models.Model):
     order = models.PositiveIntegerField(default=0, verbose_name="简序")
     source = models.CharField(max_length=200, blank=True, verbose_name="出处")
     parallel_text = models.CharField(max_length=200, blank=True, verbose_name="对读")
+    image = models.ImageField(upload_to='slips/', blank=True, null=True, verbose_name="图版")
 
     def __str__(self):
         return self.content
@@ -146,3 +147,40 @@ class Annotation(models.Model):
         """后台列表预览用"""
         return self.content[:30] + '...' if len(self.content) > 30 else self.content
     content_preview.short_description = '集释预览'
+
+    from django.db import models
+
+class Character(models.Model):
+    """独立存储每个字的信息"""
+    glyph = models.CharField(max_length=10, unique=True, verbose_name="释读")
+    
+    # 上古音信息
+    initial = models.CharField(max_length=20, blank=True, verbose_name="声母")
+    rhyme = models.CharField(max_length=20, blank=True, verbose_name="韵部")
+    pronunciation = models.CharField(max_length=10, blank=True, verbose_name="读音")
+    
+    # 字形信息（图片或动态组字编码）
+    glyph_image = models.ImageField(upload_to='glyphs/', blank=True, null=True, verbose_name="字形图片")
+    ligature_code = models.CharField(max_length=100, blank=True, verbose_name="构字式")
+    
+    # 基本释义
+    meaning = models.TextField(blank=True, verbose_name="释义")
+    
+    # 备注
+    notes = models.TextField(blank=True, verbose_name="备注")
+    
+    def __str__(self):
+        return self.glyph
+
+
+class SlipChar(models.Model):
+    """竹简上的字——关联竹简和字，并记录位置"""
+    slip = models.ForeignKey('SlipText', on_delete=models.CASCADE, related_name='slipchars', verbose_name="竹简")
+    character = models.ForeignKey(Character, on_delete=models.CASCADE, verbose_name="字")
+    position = models.IntegerField(default=0, verbose_name="位置")  # 第几个字
+    
+    class Meta:
+        ordering = ['position']
+    
+    def __str__(self):
+        return f"{self.slip.slip_id} · {self.position} · {self.character.glyph}"

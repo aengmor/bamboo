@@ -110,6 +110,10 @@
         <!-- 返回链接 -->
         <a href="{% url 'slip_list' %}" class="back-link">← 返回列表</a>
 
+        <span class="toolbar">
+            <button id="toggle-phonetic">🔊 隐藏注音</button>
+        </span>
+
         <!-- 头部信息 -->
         <div class="detail-header">
             <h1 class="detail-title">{{ slip.slip_id }}</h1>
@@ -127,7 +131,18 @@
 
         <!-- 释文正文 -->
         <div class="detail-content">
-            {{ slip.content|linebreaksbr }}
+            {% for sc in chars %}
+            {% with char=sc.character %}
+            <a href="{% url 'character_detail' pk=char.pk %}" style="text-decoration: none; color: inherit; display: inline-block;">
+                <ruby class="char-ruby">
+                    {{ char.glyph }}
+                    <rt class="phonetic-rt">{{ char.pronunciation }}</rt>
+                </ruby>
+            </a>
+            {% endwith %}
+            {% empty %}
+            该简暂无释文。
+            {% endfor %}
         </div>
 
         <!-- 扩展信息区（如果将来还有其他字段） -->
@@ -143,6 +158,12 @@
         </div>
         {% endif %}
 
+        {% if slip.image %}
+        <div class="slip-image">
+            <img src="{{ slip.image.url }}" alt="{{ slip.slip_id }}" style="max-width:100%; height:auto;">
+        </div>
+        {% endif %}
+        
         <!-- 集释区域 -->
         <div class="jishi-section">
             <h3>📝 集释 · 讨论</h3>
@@ -163,13 +184,14 @@
                     <div class="annotation-header" style="font-size: 14px; color: #7a5d3c;">
                         <span class="anno-author" style="margin-left: 12px;">{{ anno.author }}</span>
                         <span class="anno-type" style="margin-left: 12px;">{{ anno.get_annotation_type_display }}</span>
-                        <span class="anno-confidence" style="margin-left: 12px;">可靠度：{{ anno.confidence }}/5</span>
-                        <span class="anno-date" style="margin-left: 12px; float:right">{{ anno.created_at|date:"Y-m-d" }}</span>
+                        <span class="anno-confidence" style="margin-left: 12px;">可靠度{{ anno.confidence }}/5</span>
+                        <span class="anno-date" style="margin-left: 12px; float:right">{{anno.created_at|date:"Y-m-d"}}</span>
+                        {% if anno.title %} <span class="anno-title" style="margin-left: 12px; float:right">{{anno.title }}</span>
                     </div>
-                    {% if anno.title %}
-                    <div class="anno-title">{{ anno.title }}</div>
+
                     {% endif %}
-                    <div class="anno-content" style="font-size: 16px; line-height: 1.8; margin-top: 6px;">{{ anno.content|linebreaksbr }}</div>
+                    <div class="anno-content" style="font-size: 16px; line-height: 1.8; margin-top: 6px;">
+                        {{anno.content|linebreaksbr }}</div>
                     {% if anno.evidence %}
                     <div class="anno-evidence">
                         <strong>📖 证据：</strong>{{ anno.evidence|linebreaksbr }}
@@ -217,5 +239,14 @@
         </div>
     </div>
 </body>
+
+<script>
+    document.getElementById('toggle-phonetic').addEventListener('click', function () {
+        const content = document.querySelector('.detail-content');
+        content.classList.toggle('phonetic-hidden');
+        content.classList.toggle('phonetic-visible');
+        this.textContent = content.classList.contains('phonetic-hidden') ? '🔊 显示注音' : '🔊 隐藏注音';
+    });
+</script>
 
 </html>

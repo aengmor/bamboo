@@ -1,0 +1,22 @@
+{% extends 'texts/base.html' %}
+
+{% block title %}篇章目录 · 先秦出土文献数据库{% endblock %}
+
+{% block content %}
+    <h1>📚 篇章目录</h1>
+    {% if chapters %}
+        <ul class="chapter-list" style="list-style:none; padding:0; margin:20px 0;">
+            {% for ch in chapters %}
+                <li style="padding:12px 16px; border-bottom:1px solid #ede6db; font-size:18px;">
+                    <a href="{% url 'slip_list' %}?chapter={{ ch.id }}" style="color:#3d2c1b; text-decoration:none; display:block;">
+                        {{ ch.title }}
+                        <span style="float:right; color:#aa9b88; font-size:14px;">{{ ch.sliptext_set.count }} 简</span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="empty-msg">暂无篇章数据。</p>
+    {% endif %}
+    <p><a href="{% url 'home' %}" style="color:#7a5d3c;">← 返回首页</a></p>
+{% endblock %}

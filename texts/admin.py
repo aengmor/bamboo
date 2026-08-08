@@ -1,6 +1,6 @@
 from adminsortable2.admin import SortableAdminMixin
 from django.contrib import admin
-from .models import SlipText, Chapter, Annotation
+from .models import Character, SlipChar, SlipText, Chapter, Annotation
 
 @admin.register(SlipText)
 class SlipTextAdmin(SortableAdminMixin, admin.ModelAdmin):
@@ -19,17 +19,22 @@ class ChapterAdmin(admin.ModelAdmin):
     search_fields = ('title',)
     fields = ('title', 'description', 'slip_order')
 
-# @admin.register(Comment)
-# class CommentAdmin(admin.ModelAdmin):
-#     list_display = ('slip', 'commenter', 'comment_type', 'reliability', 'created_at')
-#     list_filter = ('comment_type', 'reliability', 'is_anonymous')
-#     search_fields = ('commenter', 'content')
-#     ordering = ('-created_at',)
-#     readonly_fields = ('created_at', 'updated_at')
-
-# from .models import Chapter, SlipText, Annotation
-
-# # 已有的 SlipTextAdmin 和 ChapterAdmin 保持不变
+@admin.register(Character)
+class CharacterAdmin(admin.ModelAdmin):
+    list_display = ('glyph', 'initial', 'rhyme', 'pronunciation', 'ligature_code')  # 显示哪些字段
+    search_fields = ('glyph',)  # 按字形搜索
+    list_editable = ('initial', 'rhyme', 'pronunciation')  # 允许在列表页直接编辑音韵信息
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('glyph', 'ligature_code')
+        }),
+        ('上古音信息', {
+            'fields': ('initial', 'rhyme', 'pronunciation')
+        }),
+        ('释义与备注', {
+            'fields': ('meaning', 'notes')
+        })
+    )
 
 @admin.register(Annotation)
 class AnnotationAdmin(admin.ModelAdmin):
@@ -53,3 +58,9 @@ class AnnotationAdmin(admin.ModelAdmin):
             'fields': ('created_at',)
         }),
     )
+
+@admin.register(SlipChar)
+class SlipCharAdmin(admin.ModelAdmin):
+    list_display = ('slip', 'character', 'position')
+    list_filter = ('slip',)
+    search_fields = ('slip__slip_id', 'character__glyph')

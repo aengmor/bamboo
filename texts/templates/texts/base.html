@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}先秦出土文献数据库{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'texts/css/style.css' %}">
+    <style>
+        /* 导航栏样式 */
+        body {
+            margin: 0;
+            padding-top: 70px; /* 给固定导航栏预留空间 */
+            background-color: #f5f0e8;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: #3d2c1b;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .navbar .brand {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f0e8d8;
+            text-decoration: none;
+            letter-spacing: 2px;
+        }
+        .navbar .brand span {
+            color: #dacbb8;
+        }
+        .navbar .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        .navbar .nav-links a {
+            color: #dacbb8;
+            text-decoration: none;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+        .navbar .nav-links a:hover {
+            color: #ffffff;
+        }
+        .navbar .nav-links a.active {
+            color: #ffffff;
+            border-bottom: 2px solid #dacbb8;
+            padding-bottom: 4px;
+        }
+        .navbar .nav-links .sep {
+            color: #5a4a3a;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px 30px 40px 30px;
+            background-color: #fffcf8;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            min-height: 70vh;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #aa9b88;
+            font-size: 13px;
+            border-top: 1px solid #ede6db;
+            padding-top: 20px;
+        }
+        @media (max-width: 600px) {
+            .navbar {
+                flex-direction: column;
+                height: auto;
+                padding: 10px 16px;
+                gap: 6px;
+            }
+            .navbar .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 12px;
+            }
+            body {
+                padding-top: 100px;
+            }
+            .container {
+                padding: 16px 16px 30px 16px;
+            }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- ===== 导航栏 ===== -->
+    <nav class="navbar">
+        <a href="{% url 'home' %}" class="brand">📜 竹简<span>文献</span></a>
+        <div class="nav-links">
+            <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">首页</a>
+            <a href="{% url 'chapter_list' %}" class="{% if request.resolver_match.url_name == 'chapter_list' %}active{% endif %}">篇章目录</a>
+            <a href="{% url 'slip_list' %}" class="{% if request.resolver_match.url_name == 'slip_list' and not request.GET.chapter %}active{% endif %}">全部释文</a>
+            <span class="sep">|</span>
+            <a href="#">关于</a>
+        </div>
+    </nav>
+
+    <!-- ===== 主内容区 ===== -->
+    <div class="container">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <!-- ===== 页脚 ===== -->
+    <div class="footer">
+        先秦两汉出土文献 · 数据持续建设中
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

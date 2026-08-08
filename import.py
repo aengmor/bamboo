@@ -4,84 +4,56 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bamboo.settings')
 import django
 django.setup()
 
-from texts.models import SlipText
+from texts.models import Chapter, SlipText, SlipChar, Character
 
-def parse_markdown_file(filepath):
-    """读取 Markdown 文件，按段落切分，返回列表"""
-    with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
+# 读取 Markdown 文件
+with open('caomo.md', 'r', encoding='utf-8') as f:
+    content = f.read()
 
-    # 按简号标记切分成段落（忽略空段落）
-    paragraphs = [p.strip() for p in re.split(r'([₀₁₂₃₄₅₆₇₈₉]+[ᴀʙᴄ]?)', content) if p.strip()]
-    print(f"parse_markdown_file: 📄 读取文件：{filepath}，{paragraphs}")
-   
-    return paragraphs
+# 按简号分隔（你已有的逻辑）
+pattern = r'[₀₁₂₃₄₅₆₇₈₉]+[ᴀʙᴄ]?'
+parts = re.split(r'(' + pattern + r')', content)
 
-def extract_slip_id(text):
-    """从段落中提取简号，如 '₄₁' → '曹沫之阵·简41'"""
-    # 匹配所有类似 ₄₁、₃₇ʙ、₅₁ʙ 的简号标记
-    pattern = r'[₀₁₂₃₄₅₆₇₈₉]+[ᴀʙᴄ]?'
-    matches = re.findall(pattern, text)
-    print(f"🔍 匹配到简号标记：{matches}")
-    if matches:
-        # 取第一个匹配作为简号
-        raw_id = matches[0]
-        # 转换下标数字为普通数字
-        sub_map = str.maketrans('₀₁₂₃₄₅₆₇₈₉ᴀʙᴄ', '0123456789ABC')
-        num_part = raw_id.translate(sub_map).strip()
-        print(f"extract_slip_id: ✅ 提取简号：{num_part}")
-        return f"曹沫之阵{num_part}"
-    return None
+# 获取或创建篇目（如“曹沫之阵”）
+chapter, _ = Chapter.objects.get_or_create(title="曹沫之阵")
 
-def clean_content(text):
-    """移除段落中的简号标记，保留纯释文"""
-    pattern = r'[₀₁₂₃₄₅₆₇₈₉]+[ᴀʙᴄ]?'
-    cleaned = re.sub(pattern, '', text)
-    # 清理多余的空白和标点
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-    return cleaned
+sub_map = str.maketrans('₀₁₂₃₄₅₆₇₈₉', '0123456789')
 
-def import_data():
-    filepath = 'caomo.md'
-    paragraphs = parse_markdown_file(filepath)
-    print(f"import_data: 📊 开始导入数据，共 {len(paragraphs)} 个段落")
-    success_count = 0
-    skip_count = 0
-    
-    i = 0
-    while i < len(paragraphs):
-        para = paragraphs[i]
-        # 跳过标题行或过短的段落（可能是注释）
-        #if para.startswith('###'): #or len(para) < 10:
-        #    continue
-        
-        print(f"\n📄 处理段落：{para}")
-        slip_id = paragraphs[i+1] if i < len(paragraphs) - 1 else None  # 简号在后一段落
-        slip_id = extract_slip_id(slip_id) if slip_id else None
-        if not slip_id:
-            # 如果没有简号，跳过或做特殊处理（这里选择跳过）
-            print(f"⚠️ 跳过（无简号）：{para}")
-            i += 1
-            continue
-            
-        content = clean_content(para)
-        if not content:
-            i += 1
-            continue
-            
-        obj, created = SlipText.objects.get_or_create(
-            slip_id=slip_id,
-            defaults={"content": content}
-        )
-        if created:
-            print(f"✅ 已导入：{slip_id}")
-            success_count += 1
-        else:
-            print(f"⏭️ 跳过（已存在）：{slip_id}")
-            skip_count += 1
-    
-        i += 2  # 每次处理两段：释文 + 简号
-    print(f"\n📊 导入完成：成功 {success_count} 条，跳过 {skip_count} 条")
+i = 0
+while i < len(parts):
+    if re.match(pattern, parts[i]):
+        raw_id = parts[i]
+        num_part = raw_id.translate(sub_map)
+        slip_id = f"曹沫之阵·简{num_part}"
+        i += 1
+        if i < len(parts):
+            content_text = parts[i].strip()
+            if content_text:
+                # 1. 创建或获取竹简记录
+                slip, _ = SlipText.objects.get_or_create(
+                    slip_id=slip_id,
+                    defaults={'chapter': chapter}
+                )
+                # 如果该简已有内容，先清空再重建（或跳过）
+                # 这里我们假设只执行一次，如果想重新导入可以清空
+                # 简单起见，如果已有记录则跳过
+                if SlipChar.objects.filter(slip=slip).exists():
+                    print(f"⏭️ 跳过：{slip_id}（已有数据）")
+                else:
+                    # 2. 逐字拆解
+                    for pos, char in enumerate(content_text, start=1):
+                        # 跳过标点符号（可配置）
+                        if char in '，。？！、；：《》':
+                            continue
+                        # 3. 创建或获取字
+                        char_obj, _ = Character.objects.get_or_create(glyph=char)
+                        # 4. 创建关联
+                        SlipChar.objects.create(
+                            slip=slip,
+                            character=char_obj,
+                            position=pos
+                        )
+                    print(f"✅ 已导入：{slip_id}，共 {SlipChar.objects.filter(slip=slip).count()} 个字")
+    i += 1
 
-if __name__ == "__main__":
-    import_data()
+print("导入完成！")

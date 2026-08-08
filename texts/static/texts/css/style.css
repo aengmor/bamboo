@@ -277,3 +277,112 @@ mark {
         flex: 1 1 100%;
     }
 }
+
+/* 释字 */
+.char-wrapper {
+    display: inline-block;
+    position: relative;
+    font-size: 22px;
+    font-family: "KaiTi", "楷体", serif;
+    margin: 0 1px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.char-wrapper:hover {
+    background-color: #f0e8d8;
+    border-radius: 4px;
+}
+
+.phonetic {
+    font-size: 12px;
+    color: #7a5d3c;
+    margin-left: 1px;
+    font-family: "Times New Roman", serif;
+}
+
+/* Ruby 注音样式 */
+.char-ruby {
+    position: relative;
+    font-size: 22px;
+    font-family: "KaiTi", "楷体", serif;
+    margin: 0 2px;
+    cursor: default;
+    /* 关键：让主文字和注音保持在同一基线上 */
+    vertical-align: bottom;
+    line-height: 1.6; /* 增加行高，为注音留出空间 */
+}
+
+.char-ruby rt {
+    font-size: 12px;
+    color: #7a5d3c;
+    font-family: "Times New Roman", "宋体", serif;
+    font-weight: normal;
+    letter-spacing: 0.5px;
+    ruby-position: over;
+    ruby-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    display: none;
+}
+/*
+/* 如果注音内容过长（比如声母+韵部+声调），可以调整字间距 */
+.char-ruby rt {
+    font-size: 11px;
+    letter-spacing: -0.5px;
+}
+/* 可选：hover 效果 */
+.char-ruby:hover {
+    background-color: #f0e8d8;
+    border-radius: 4px;
+} */
+
+/* 注音显示/隐藏开关（后续可实现） */
+.detail-content.phonetic-hidden .char-ruby rt {
+    display: none;
+}
+.detail-content.phonetic-visible .char-ruby rt {
+    display: ruby-text;
+}
+/* 默认为可见 */
+.detail-content {
+    /* 默认不添加 hidden 类 */
+}
+
+/* 字频 */
+.occurrence-item {
+    padding: 8px 0 8px 16px;
+    border-left: 3px solid #dacbb8;
+    margin-bottom: 8px;
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+.occurrence-item a {
+    color: #4d3822;
+    text-decoration: none;
+    font-weight: bold;
+}
+.occurrence-item a:hover {
+    text-decoration: underline;
+}
+
+.context-preview {
+    display: inline-block;
+    margin-left: 12px;
+    padding: 2px 10px;
+    background-color: #f5f0e8;
+    border-radius: 4px;
+    font-size: 15px;
+    font-family: "KaiTi", "楷体", serif;
+    color: #3d2c1b;
+}
+
+.context-preview::before {
+    content: "… ";
+    color: #999;
+}
+.context-preview::after {
+    content: " …";
+    color: #999;
+}

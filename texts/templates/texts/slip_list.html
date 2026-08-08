@@ -1,21 +1,25 @@
-<!DOCTYPE html>
+{% extends 'texts/base.html' %}
 {% load text_extras %}
 {# load markdownx #}
-<html>
+{% block title %}
+    {% if selected_chapter %}
+        {{ selected_chapter.title }} · 释文
+    {% else %}
+        全部释文 · 先秦出土文献数据库
+    {% endif %}
+{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>竹简释文 · 先秦出土文献数据库</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'texts/css/style.css' %}">
-</head>
-
-<body>
-
-    <div class="container">
+{% block content %}
+    
         <h1>📜 竹简释文</h1>
 
+        {% if selected_chapter %}
+        <p><a href="{% url 'chapter_list' %}" class="back-link">← 返回篇章目录</a></p>
+        <h2 style="margin-top:0; color:#7a5d3c; font-weight:normal;">{{ selected_chapter.title }}</h2>
+        {% else %}
+        <!-- 可选：在全部浏览时显示一个指向目录的链接 -->
+        <p><a href="{% url 'chapter_list' %}" class="back-link">📚 浏览篇章目录</a></p>
+        {% endif %}
         <!-- 搜索框 -->
         <div class="search-bar">
             <form method="get" action="">
@@ -67,7 +71,6 @@
         {% empty %}
         <div class="empty-msg">📭 暂无释文数据。</div>
         {% endfor %}
-    </div>
-</body>
-
-</html>
+    
+    
+{% endblock %}
