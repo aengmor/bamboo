@@ -10,15 +10,19 @@
 {% endblock %}
 
 {% block content %}
-    
-        <h1>📜 竹简释文</h1>
 
         {% if selected_chapter %}
         <p><a href="{% url 'chapter_list' %}" class="back-link">← 返回篇章目录</a></p>
-        <h2 class="chapter-subtitle">{{ selected_chapter.title }}</h2>
+        <h1 class="chapter-subtitle">📜 {{ selected_chapter.title }}</h1>
+            {% if selected_chapter.description %}
+            <div class="chapter-annotation">
+                {{ selected_chapter.description|linebreaks }}
+            </div>
+            {% endif %}
         {% else %}
         <!-- 可选：在全部浏览时显示一个指向目录的链接 -->
         <p><a href="{% url 'chapter_list' %}" class="back-link">📚 浏览篇章目录</a></p>
+        <h1>📜 竹简释文</h1>
         {% endif %}
         <!-- 搜索框 -->
         <div class="search-bar">
