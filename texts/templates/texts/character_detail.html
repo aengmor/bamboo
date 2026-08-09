@@ -32,9 +32,8 @@
 
 <div class="glyph-extra">
     <div class="glyph-grid">
-        <div><span class="label">声</span><strong>{{ char.initial|default:"—" }}</strong></div>
-        <div><span class="label">韵</span><strong>{{ char.rhyme|default:"—" }}</strong></div>
-        <div><span class="label">音</span><strong>{{ char.pronunciation|default:"—" }}</strong></div>
+        <strong>{{ char.initial|default:"—" }}</strong><span class="label">纽</span><strong>{{ char.rhyme|default:"—" }}</strong><span class="label">部</span>
+        <span class="label">音</span><strong>{{ char.pronunciation|default:"—" }}</strong>
     </div>
 </div>
 
@@ -67,6 +66,11 @@
             <strong><a href="{% url 'slip_detail' pk=sc.slip.pk %}">{{ sc.slip.slip_id }} · 第 {{ sc.position }}
                     字</a></strong>
             <span class="context-preview">{{ sc.context }}</span>
+            {% if sc.glyph_obj and sc.glyph_obj.image %}
+            <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
+            {% else %}
+            <span class="char-placeholder"></span>
+            {% endif %}
         </div>
         {% endfor %}
     </div>

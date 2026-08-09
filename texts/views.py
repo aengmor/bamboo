@@ -180,6 +180,11 @@ def character_detail(request, pk):
         )
     ).order_by('slip__chapter__title', 'slip__slip_id', 'position')
 
+    # 为每个 SlipChar 预加载对应的字形图片（如果存在）
+    for sc in occurrences_qs:
+        # 查询该字在该简该位置的字形图片
+        sc.glyph_obj = char.glyphs.filter(slip=sc.slip, position=sc.position).first()
+
     # 分页处理出现位置，避免单页过长
     page = request.GET.get('page', 1)
     occurrence_paginator = Paginator(occurrences_qs, 20)
