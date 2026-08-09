@@ -27,4 +27,5 @@ urlpatterns = [
     path('slip/<int:pk>/', views.slip_detail, name='slip_detail'),
     path('character/<int:pk>/', views.character_detail, name='character_detail'),
     path('chapters/', views.chapter_list, name='chapter_list'),
+    path('glyph/<int:pk>/', views.glyph_detail, name='glyph_detail'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

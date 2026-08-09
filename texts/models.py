@@ -187,3 +187,30 @@ class SlipChar(models.Model):
     
     def __str__(self):
         return f"{self.slip.slip_id} · {self.position} · {self.character.glyph}"
+
+class GlyphAnnotation(models.Model):
+    """字形集释"""
+    TYPE_CHOICES = [
+        ('lishi', '隶定意见'),
+        ('shiyi', '释读意见'),
+        ('xiesheng', '谐声域意见'),
+        ('zonghe', '综合意见'),
+        ('qita', '其他'),
+    ]
+    
+    glyph = models.ForeignKey(Glyph, on_delete=models.CASCADE, related_name='annotations', verbose_name="字形")
+    annotation_type = models.CharField(max_length=20, choices=TYPE_CHOICES, verbose_name="类型")
+    title = models.CharField(max_length=200, blank=True, verbose_name="标题")
+    reading = models.CharField(max_length=20, blank=True, verbose_name="释读")
+    content = models.TextField(verbose_name="集释内容")
+    evidence = models.TextField(blank=True, verbose_name="证据引用", help_text="所引用的音韵、古文字、辞例等证据")
+    author = models.CharField(max_length=100, verbose_name="评论人")
+    is_approved = models.BooleanField(default=False, verbose_name="已审核")
+    confidence = models.IntegerField(default=0, verbose_name="可靠度", help_text="1-5")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="发布时间")
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.glyph} · {self.author} · {self.get_annotation_type_display()}"

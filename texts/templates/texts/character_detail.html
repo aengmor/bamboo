@@ -63,8 +63,7 @@
         <h3>{{ chapter_title }} </h3>
         {% for sc in sc_list %}
         <div class="occurrence-item">
-            <strong><a href="{% url 'slip_detail' pk=sc.slip.pk %}">{{ sc.slip.slip_id }} · 第 {{ sc.position }}
-                    字</a></strong>
+            <strong><a href="{% url 'slip_detail' pk=sc.slip.pk %}">{{ sc.slip.slip_id }} · 第 {{ sc.position }} 字</a></strong>
             <span class="context-preview">{{ sc.context }}</span>
             {% if sc.glyph_obj and sc.glyph_obj.image %}
             <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">

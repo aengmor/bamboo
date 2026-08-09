@@ -1,7 +1,7 @@
 from adminsortable2.admin import SortableAdminMixin
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Character, SlipChar, SlipText, Chapter, Annotation, Glyph
+from .models import Character, SlipChar, SlipText, Chapter, Annotation, Glyph, GlyphAnnotation
 
 @admin.register(SlipText)
 class SlipTextAdmin(SortableAdminMixin, admin.ModelAdmin):
@@ -86,3 +86,10 @@ class GlyphAdmin(admin.ModelAdmin):
             )
         return "无图片"
     image_preview.short_description = "预览"
+
+@admin.register(GlyphAnnotation)
+class GlyphAnnotationAdmin(admin.ModelAdmin):
+    list_display = ('glyph', 'author', 'annotation_type', 'is_approved', 'created_at')
+    list_filter = ('annotation_type', 'is_approved')
+    search_fields = ('author', 'content', 'evidence')
+    list_editable = ('is_approved',)

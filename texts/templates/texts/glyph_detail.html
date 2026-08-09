@@ -1,0 +1,89 @@
+{% extends 'texts/base.html' %}
+
+{% block title %}{{ glyph.character.glyph }} · 字形详情{% endblock %}
+
+{% block content %}
+
+<a href="{% url 'slip_detail' pk=glyph.slip.pk %}" class="back-link">← 返回竹简</a>
+
+<div style="text-align:center; margin:20px 0;">
+    <img src="{{ glyph.image.url }}" alt="{{ glyph.character.glyph }}"
+        style="max-width:100%; max-height:400px; border-radius:12px; border:1px solid #e6ddd0; box-shadow:0 6px 18px rgba(0,0,0,0.08);">
+</div>
+
+<div class="glyph-extra" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+    <div><span class="label">📝 隶定：</span><strong>{{ glyph.character.glyph }}</strong></div>
+    <div><span class="label">📖 释文：</span><strong>{{ glyph.character.glyph|default:"未录入" }}</strong></div>
+    <div><span class="label">🔢 释义：</span><strong>{{ glyph.character.meaning|default:"未录入" }}</strong></div>
+    <div><span class="label">🗂️ 篇目：</span><strong>{{ glyph.slip.chapter.title|default:"未分类" }}</strong></div>
+    <div><span class="label">📍 位置：</span><a href="{% url 'slip_detail' pk=glyph.slip.pk %}">{{ glyph.slip.slip_id}} · 第 {{ glyph.position }} 字</a></div>
+    <div><span class="label">🔗 谐声域：</span><strong>{{ glyph.character.xiesheng|default:"未录入" }}</strong></div>
+</div>
+
+<div class="jishi-section">
+    <h3>📝 学者集释</h3>
+    {% if discussions %}
+    <div class="annotations-list">
+        {% for d in discussions %}
+        <div class="annotation-item">
+            <div class="annotation-header">
+                <span class="anno-author">{{ d.author }}</span>
+                <span class="anno-type">{{ d.get_discussion_type_display }}</span>
+                <span class="anno-date">{{ d.created_at|date:"Y-m-d" }}</span>
+            </div>
+            {% if d.title %}
+            <div class="anno-title">{{ d.title }}</div>
+            {% endif %}
+            <div class="anno-content">{{ d.content|linebreaksbr }}</div>
+            {% if d.evidence %}
+            <div class="anno-evidence">
+                <strong>📖 证据：</strong>{{ d.evidence|linebreaksbr }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="jishi-placeholder">📭 暂无学者集释。</div>
+    {% endif %}
+
+    <!-- 提交集释表单 -->
+    <div class="submit-form">
+        <h4>✍️ 提交您的集释</h4>
+        <p class="form-tip">集释将经过审核后显示。请提供尽可能详实的证据。</p>
+        <form method="post" action="">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-field half">
+                    {{ form.author.label_tag }}
+                    {{ form.author }}
+                </div>
+                <div class="form-field half">
+                    {{ form.discussion_type.label_tag }}
+                    {{ form.discussion_type }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-field half">
+                    {{ form.title.label_tag }}
+                    {{ form.title }}
+                </div>
+                <div class="form-field half">
+                    {{ form.reading.label_tag }}
+                    {{ form.reading }}
+                </div>
+            </div>
+            <div class="form-field">
+                {{ form.content.label_tag }}
+                {{ form.content }}
+            </div>
+            <div class="form-field">
+                {{ form.evidence.label_tag }}
+                {{ form.evidence }}
+            </div>
+            <button type="submit" class="submit-btn">提交集释</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

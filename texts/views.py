@@ -6,7 +6,7 @@ from django.db.models import Count, Q, Prefetch
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from urllib.parse import urlencode
 from .models import SlipText, Chapter, Character, SlipChar, Annotation, Glyph
-from .forms import AnnotationForm
+from .forms import AnnotationForm, GlyphAnnotationForm
 
 # 这是应用的视图文件，负责把数据库中的数据读取出来，传给前端模板显示。
 # 所有函数都返回一个 render(request, template, context) 用于渲染页面。
@@ -267,3 +267,29 @@ def chapter_list(request):
         'page_obj': page_obj,
     }
     return render(request, 'texts/chapter_list.html', context)
+
+def glyph_detail(request, pk):
+    glyph = get_object_or_404(Glyph.objects.select_related('character', 'slip__chapter'), pk=pk)
+    
+    if request.method == 'POST':
+        form = GlyphAnnotationForm(request.POST)
+        if form.is_valid():
+            annotation = form.save(commit=False)
+            annotation.glyph = glyph
+            annotation.is_approved = False  # 默认待审核
+            annotation.save()
+            messages.success(request, '✅ 您的讨论已提交，等待审核后显示。')
+            return redirect('glyph_detail', pk=glyph.pk)
+        else:
+            messages.error(request, '❌ 提交失败，请检查表单内容。')
+    else:
+        form = GlyphAnnotationForm()
+    
+    annotations = glyph.annotations.filter(is_approved=True).order_by('-created_at')
+    
+    context = {
+        'glyph': glyph,
+        'annotations': annotations,
+        'form': form,
+    }
+    return render(request, 'texts/glyph_detail.html', context)

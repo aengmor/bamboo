@@ -32,18 +32,21 @@
 
 <div class="detail-content">
     {% for sc in chars %}
-    <a href="{% url 'character_detail' pk=sc.character.pk %}" class="char-link" data-position="{{ sc.position }}"
-        id="char-pos-{{ sc.position }}">
+    <div class="char">
         {% if sc.glyph_obj and sc.glyph_obj.image %}
-        <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
+            <a href="{% url 'glyph_detail' pk=sc.glyph_obj.pk %}">
+                <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
+            </a>
         {% else %}
-        <span class="char-placeholder"></span>
+            <span class="char-placeholder"></span>
         {% endif %}
-        <ruby class="char-ruby">
-            {{ sc.character.glyph }}
-            <rt>{{ sc.character.pronunciation }}</rt>
-        </ruby>
-    </a>
+            <a href="{% url 'character_detail' pk=sc.character.pk %}" data-position="{{ sc.position }}" class="char-link">
+                <ruby class="char-ruby">
+                    {{ sc.character.glyph }}
+                    <rt>{{ sc.character.pronunciation }}</rt>
+                </ruby>
+            </a>
+    </div>
     {% empty %}
     该简暂无释文。
     {% endfor %}
