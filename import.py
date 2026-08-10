@@ -1,59 +1,108 @@
+import argparse
 import os
-import re
+from unittest import skip
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bamboo.settings')
 import django
+
 django.setup()
 
 from texts.models import Chapter, SlipText, SlipChar, Character
 
-# 读取 Markdown 文件
-with open('caomo.md', 'r', encoding='utf-8') as f:
-    content = f.read()
+SKIP_CHARS = set('，。？！、；：《》 …“‘”’（）【】『』〔〕〈〉﹁﹂﹃﹄︵︶︹︺︿﹀︽︾﹁﹂︿﹀︽︾')  
+# 需要跳过的标点符号
 
-# 按简号分隔（你已有的逻辑）
-pattern = r'[₀₁₂₃₄₅₆₇₈₉]+[ᴀʙᴄ]?'
-parts = re.split(r'(' + pattern + r')', content)
+def parse_import_file(path):
+    """读取最简单的导入格式"""
+    with open(path, 'r', encoding='utf-8') as fh:
+        lines = [line.strip() for line in fh if line.strip()]
 
-# 获取或创建篇目（如“曹沫之阵”）
-chapter, _ = Chapter.objects.get_or_create(title="曹沫之阵")
+    chapter_title = None
+    records = []
 
-sub_map = str.maketrans('₀₁₂₃₄₅₆₇₈₉', '0123456789')
+    for line in lines:
+        if line.lower().startswith('###'):
+            chapter_title = line.split(' ', 1)[1].strip()
+            continue
+        if line.startswith('//'):
+            continue
 
-i = 0
-while i < len(parts):
-    if re.match(pattern, parts[i]):
-        raw_id = parts[i]
-        num_part = raw_id.translate(sub_map)
-        slip_id = f"曹沫之阵·简{num_part}"
-        i += 1
-        if i < len(parts):
-            content_text = parts[i].strip()
-            if content_text:
-                # 1. 创建或获取竹简记录
-                slip, _ = SlipText.objects.get_or_create(
-                    slip_id=slip_id,
-                    defaults={'chapter': chapter}
-                )
-                # 如果该简已有内容，先清空再重建（或跳过）
-                # 这里我们假设只执行一次，如果想重新导入可以清空
-                # 简单起见，如果已有记录则跳过
-                if SlipChar.objects.filter(slip=slip).exists():
-                    print(f"⏭️ 跳过：{slip_id}（已有数据）")
-                else:
-                    # 2. 逐字拆解
-                    for pos, char in enumerate(content_text, start=1):
-                        # 跳过标点符号（可配置）
-                        if char in '，。？！、；：《》':
-                            continue
-                        # 3. 创建或获取字
-                        char_obj, _ = Character.objects.get_or_create(glyph=char)
-                        # 4. 创建关联
-                        SlipChar.objects.create(
-                            slip=slip,
-                            character=char_obj,
-                            position=pos
-                        )
-                    print(f"✅ 已导入：{slip_id}，共 {SlipChar.objects.filter(slip=slip).count()} 个字")
-    i += 1
+        if '|' in line:
+            slip_id, content = line.split('|', 1)
+        elif '.' in line:
+            slip_id, content = line.split('.', 1)
+        elif ':' in line:
+            slip_id, content = line.split(':', 1)
+        elif '：' in line:
+            slip_id, content = line.split('：', 1)
+        else:
+            raise ValueError(f'这一行格式不对：{line}。请写成“简号|内容”或“简号:内容”')
 
-print("导入完成！")
+        if slip_id[0].isdigit():
+            slip_id = chapter_title + slip_id
+        
+        records.append((chapter_title.strip(), slip_id.strip(), content.strip()))
+
+    if not chapter_title:
+        raise ValueError('文件里必须先写一行：chapter: 篇名')
+    if not records:
+        raise ValueError('文件里没有找到任何简号和内容')
+
+    return records
+
+
+def import_records(records, reset=False):
+    created_slips = 0
+    created_chars = 0
+    order = 1
+
+    for chapter_title, slip_id, content in records:
+        chapter, _ = Chapter.objects.get_or_create(title=chapter_title)
+
+        slip, created = SlipText.objects.get_or_create(
+            slip_id=slip_id,
+            defaults={'chapter': chapter, 'content': content, 'order': order}
+        )
+        if not created:
+            slip.chapter = chapter
+            slip.content = content
+            slip.save()
+
+        if SlipChar.objects.filter(slip=slip).exists() and not reset:
+            print(f'⏭️ 跳过：{slip_id}（已有字数据）')
+            continue
+
+        order = order + 1
+        SlipChar.objects.filter(slip=slip).delete()
+
+        position = 1
+        for char in content:
+            if char in SKIP_CHARS or char == ' ':
+                continue
+            char_obj, _ = Character.objects.get_or_create(glyph=char)
+            SlipChar.objects.create(slip=slip, character=char_obj, position=position)
+            position += 1
+            created_chars += 1
+
+        created_slips += 1
+        print(f'✅ 已导入：{slip_id}，共 {position - 1} 个字')
+
+    print(f'导入完成：篇目「{chapter_title}」共新增 {created_slips} 简，{created_chars} 个字')
+
+
+def main():
+    parser = argparse.ArgumentParser(description='把简单文本文件导入到竹简数据库')
+    parser.add_argument('--file', default='caomo.md', help='导入文件路径，默认读取 caomo.md')
+    args = parser.parse_args()
+
+    file_path = args.file
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f'找不到文件：{file_path}')
+
+    records = parse_import_file(file_path)
+
+    import_records(records, reset=args.reset)
+
+
+if __name__ == '__main__':
+    main()
