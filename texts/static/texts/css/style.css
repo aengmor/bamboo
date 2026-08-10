@@ -309,14 +309,19 @@ h2 {
   padding: 10px 0;
   border-bottom: none;
 }
+.slip-link {
+  text-decoration: none;
+}
 .slip-id {
   display: inline-block;
   font-size: 16px;
   font-weight: bold;
   color: var(--accent);
+  /*
   background: #efe8dd;
   padding: 2px 16px;
   border-radius: 999px;
+  */
   margin-right: 10px;
   letter-spacing: 1px;
 }
@@ -326,7 +331,7 @@ h2 {
   line-height: 1.8;
   color: var(--dark);
   font-family: var(--font-serif);
-  text-indent: 2em;
+  text-indent: 0em;
   letter-spacing: 0.4px;
   vertical-align: middle;
 }
