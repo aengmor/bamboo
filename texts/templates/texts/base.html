@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,15 +9,28 @@
     <link rel="stylesheet" href="{% static 'texts/css/style.css' %}">
     {% block extra_head %}{% endblock %}
 </head>
+
 <body>
 
     <!-- ===== 导航栏 ===== -->
     <nav class="navbar">
         <a href="{% url 'home' %}" class="brand">📜 竹简<span>文献</span></a>
-        <div class="nav-links">
-            <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">首页</a>
-            <a href="{% url 'chapter_list' %}" class="{% if request.resolver_match.url_name == 'chapter_list' %}active{% endif %}">篇章目录</a>
-            <a href="{% url 'slip_list' %}" class="{% if request.resolver_match.url_name == 'slip_list' and not request.GET.chapter %}active{% endif %}">全部释文</a>
+
+        <!-- 汉堡菜单按钮（小屏幕显示） -->
+
+        <button class="navbar-toggler" id="navToggle" aria-label="切换导航菜单">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+
+        <div class="nav-links" id="navLinks">
+            <a href="{% url 'home' %}"
+                class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">首页</a>
+            <a href="{% url 'chapter_list' %}"
+                class="{% if request.resolver_match.url_name == 'chapter_list' %}active{% endif %}">篇章目录</a>
+            <a href="{% url 'slip_list' %}"
+                class="{% if request.resolver_match.url_name == 'slip_list' and not request.GET.chapter %}active{% endif %}">全部释文</a>
             <span class="sep">|</span>
             <a href="#">关于</a>
         </div>
@@ -33,6 +47,28 @@
         先秦两汉出土文献 · 数据持续建设中
     </div>
 
-    {% block extra_js %}{% endblock %}
+    {% block extra_js %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggle = document.getElementById('navToggle');
+        const navLinks = document.getElementById('navLinks');
+
+        if (toggle && navLinks) {
+            toggle.addEventListener('click', function() {
+                const isOpen = navLinks.classList.toggle('open');
+                toggle.classList.toggle('active', isOpen);
+            });
+
+            // 点击导航链接后自动关闭（提升移动端体验）
+            navLinks.querySelectorAll('a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    navLinks.classList.remove('open');
+                    toggle.classList.remove('active');
+                });
+            });
+        }
+    });
+    </script>
+    {% endblock %}
 </body>
 </html>
