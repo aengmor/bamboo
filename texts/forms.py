@@ -1,5 +1,5 @@
 from django import forms
-from .models import Annotation, GlyphAnnotation
+from .models import Annotation, ChapterComment, GlyphAnnotation
 
 class AnnotationForm(forms.ModelForm):
     class Meta:
@@ -37,4 +37,17 @@ class GlyphAnnotationForm(forms.ModelForm):
             'author': forms.TextInput(attrs={'placeholder': '姓名或笔名'}),
             'title': forms.TextInput(attrs={'placeholder': '标题（可选）'}),
             'reading': forms.TextInput(attrs={'placeholder': '例如：读为"道"'}),
+        }
+
+class ChapterCommentForm(forms.ModelForm):
+    class Meta:
+        model = ChapterComment
+        fields = ['author', 'content']
+        widgets = {
+            'author': forms.TextInput(attrs={'placeholder': '您的姓名或笔名', 'class': 'form-control'}),
+            'content': forms.Textarea(attrs={'rows': 3, 'placeholder': '请在此输入您的篇章评述...', 'class': 'form-control'}),
+        }
+        labels = {
+            'author': '评论人',
+            'content': '评论内容',
         }

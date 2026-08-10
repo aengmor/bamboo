@@ -214,3 +214,18 @@ class GlyphAnnotation(models.Model):
     
     def __str__(self):
         return f"{self.glyph} · {self.author} · {self.get_annotation_type_display()}"
+
+class ChapterComment(models.Model):
+    chapter = models.ForeignKey('Chapter', on_delete=models.CASCADE, related_name='comments', verbose_name="所属篇章")
+    author = models.CharField(max_length=100, verbose_name="评论人")
+    content = models.TextField(verbose_name="评论内容")
+    is_approved = models.BooleanField(default=False, verbose_name="已审核")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="发布时间")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "篇章评论"
+        verbose_name_plural = "篇章评论"
+
+    def __str__(self):
+        return f"{self.chapter.title} · {self.author} · {self.created_at.strftime('%Y-%m-%d')}"

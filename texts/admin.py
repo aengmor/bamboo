@@ -1,7 +1,7 @@
 from adminsortable2.admin import SortableAdminMixin
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Character, SlipChar, SlipText, Chapter, Annotation, Glyph, GlyphAnnotation
+from .models import ChapterComment, Character, SlipChar, SlipText, Chapter, Annotation, Glyph, GlyphAnnotation
 
 @admin.register(SlipText)
 class SlipTextAdmin(SortableAdminMixin, admin.ModelAdmin):
@@ -93,3 +93,14 @@ class GlyphAnnotationAdmin(admin.ModelAdmin):
     list_filter = ('annotation_type', 'is_approved')
     search_fields = ('author', 'content', 'evidence')
     list_editable = ('is_approved',)
+
+@admin.register(ChapterComment)
+class ChapterCommentAdmin(admin.ModelAdmin):
+    list_display = ('chapter', 'author', 'content_preview', 'is_approved', 'created_at')
+    list_filter = ('chapter', 'is_approved')
+    search_fields = ('author', 'content')
+    list_editable = ('is_approved',)
+
+    def content_preview(self, obj):
+        return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
+    content_preview.short_description = "评论预览"

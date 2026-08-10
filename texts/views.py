@@ -5,8 +5,8 @@ from django.contrib import messages
 from django.db.models import Count, Q, Prefetch
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from urllib.parse import urlencode
-from .models import SlipText, Chapter, Character, SlipChar, Annotation, Glyph
-from .forms import AnnotationForm, GlyphAnnotationForm
+from .models import SlipText, Chapter, Character, SlipChar, Annotation, ChapterComment, Glyph
+from .forms import AnnotationForm, ChapterCommentForm, GlyphAnnotationForm
 
 # 这是应用的视图文件，负责把数据库中的数据读取出来，传给前端模板显示。
 # 所有函数都返回一个 render(request, template, context) 用于渲染页面。
@@ -46,29 +46,54 @@ def slip_list(request):
     chapter_id = request.GET.get('chapter', '').strip()
     page = request.GET.get('page', 1)
 
-    # preserve other GET params for pagination links (exclude page)
     other_get = {k: v for k, v in request.GET.items() if k != 'page' and v != ''}
     get_params = urlencode(other_get)
 
     selected_chapter = None
-    if chapter_id and chapter_id.isdigit():
-        selected_chapter = Chapter.objects.filter(id=int(chapter_id)).first()
+    approved_comments_qs = None
+    if chapter_id.isdigit():
+        approved_comments_qs = ChapterComment.objects.filter(is_approved=True).order_by('-created_at')
+        selected_chapter = Chapter.objects.filter(id=int(chapter_id)).prefetch_related(
+            Prefetch('comments', queryset=approved_comments_qs, to_attr='approved_comments')
+        ).first()
 
-    queryset = SlipText.objects.select_related('chapter').all()
+    if request.method == 'POST':
+        form = ChapterCommentForm(request.POST)
+        if form.is_valid():
+            target_chapter_id = request.POST.get('chapter_id', '').strip()
+            target_chapter = Chapter.objects.filter(id=int(target_chapter_id)).first() if target_chapter_id.isdigit() else None
+            if target_chapter:
+                comment = form.save(commit=False)
+                comment.chapter = target_chapter
+                comment.is_approved = False
+                comment.save()
+                messages.success(request, '✅ 您的评论已提交，等待审核后显示。')
+                return redirect(f"{request.path}{'?' + get_params if get_params else ''}")
+            messages.error(request, '❌ 未找到目标篇章，提交失败。')
+        else:
+            messages.error(request, '❌ 提交失败，请检查表单内容。')
+    else:
+        form = ChapterCommentForm()
+
+    slips_queryset = SlipText.objects.select_related('chapter')
     if query:
-        queryset = queryset.filter(
+        slips_queryset = slips_queryset.filter(
             Q(content__icontains=query) | Q(slip_id__icontains=query)
         )
-    if chapter_id and chapter_id.isdigit():
-        queryset = queryset.filter(chapter_id=int(chapter_id))
+    if selected_chapter:
+        slips_queryset = slips_queryset.filter(chapter=selected_chapter)
 
-    # If user searched or selected a chapter, present a paginated flat list of slips
+    query_count = slips_queryset.count()
+    selected_chapter_comments = getattr(selected_chapter, 'approved_comments', []) if selected_chapter else []
+
     paginated_slips = None
     paginator = None
     page_obj = None
-    if query or (chapter_id and chapter_id.isdigit()):
-        slips_qs = queryset.order_by('order', 'slip_id')
-        paginator = Paginator(slips_qs, 20)
+    chapter_data = []
+
+    if query or selected_chapter:
+        page_qs = slips_queryset.order_by('order', 'slip_id')
+        paginator = Paginator(page_qs, 20)
         try:
             page_obj = paginator.page(page)
         except PageNotAnInteger:
@@ -77,11 +102,9 @@ def slip_list(request):
             page_obj = paginator.page(paginator.num_pages)
         paginated_slips = page_obj.object_list
         chapters = Chapter.objects.order_by('title')
-        chapter_data = []
     else:
-        # no filter: 分页展示篇章分组，避免全部篇章一次性加载
         chapters_qs = Chapter.objects.order_by('title').prefetch_related(
-            Prefetch('slip_texts', queryset=queryset.order_by('order', 'slip_id'), to_attr='filtered_slips')
+            Prefetch('slip_texts', queryset=slips_queryset.order_by('order', 'slip_id'), to_attr='filtered_slips'),
         )
         paginator = Paginator(chapters_qs, 10)
         try:
@@ -93,11 +116,14 @@ def slip_list(request):
 
         chapters = page_obj.object_list
         chapter_data = [
-            {'chapter': ch, 'slips': ch.filtered_slips}
+            {
+                'chapter': ch,
+                'slips': ch.filtered_slips,
+            }
             for ch in chapters
             if getattr(ch, 'filtered_slips', [])
         ]
-    
+
     context = {
         'chapter_data': chapter_data,
         'paginated_slips': paginated_slips,
@@ -105,10 +131,12 @@ def slip_list(request):
         'page_obj': page_obj,
         'get_params': get_params,
         'query': query,
-        'chapters': chapters,
+        'chapters': Chapter.objects.order_by('title'),
         'selected_chapter_id': int(chapter_id) if chapter_id.isdigit() else None,
-        'selected_chapter': selected_chapter,  
-        'query_count': queryset.count(),
+        'selected_chapter': selected_chapter,
+        'selected_chapter_comments': selected_chapter_comments,
+        'query_count': query_count,
+        'form': form,
     }
 
     return render(request, 'texts/slip_list.html', context)
@@ -116,37 +144,48 @@ def slip_list(request):
 def slip_detail(request, pk):
     slip = get_object_or_404(SlipText.objects.select_related('chapter'), pk=pk)
 
-    # 获取该简上的所有字，按位置排序；预取当前简的字形图片，避免 N+1 查询
-    chars = slip.slipchars.select_related('character').prefetch_related(
-        Prefetch(
-            'character__glyphs',
-            queryset=Glyph.objects.filter(slip=slip),
-            to_attr='slip_glyphs'
-        )
-    ).order_by('position')
-
+    # 获取该简上的所有字，按位置排序；批量加载当前简的字形图片以避免 N+1 查询
+    chars = slip.slipchars.select_related('character').order_by('position')
+    glyphs = Glyph.objects.filter(slip=slip)
+    glyph_map = {glyph.position: glyph for glyph in glyphs}
     for sc in chars:
-        sc.glyph_obj = next(
-            (g for g in getattr(sc.character, 'slip_glyphs', []) if g.position == sc.position),
-            None
-        )
-    
+        sc.glyph_obj = glyph_map.get(sc.position)
+
+    form = AnnotationForm()
+    chapter_comment_form = ChapterCommentForm()
+    chapter_comments = []
+
     if request.method == 'POST':
-        form = AnnotationForm(request.POST)
-        if form.is_valid():
-            annotation = form.save(commit=False)
-            annotation.slip = slip
-            annotation.is_approved = False  # 默认待审核
-            annotation.confidence = 1        # 初始可靠度
-            annotation.likes = 0
-            annotation.save()
-            messages.success(request, '✅ 您的集释已提交，等待审核后显示。')
-            return redirect('slip_detail', pk=slip.pk)
+        if request.POST.get('form_type') == 'chapter_comment':
+            chapter_comment_form = ChapterCommentForm(request.POST)
+            if chapter_comment_form.is_valid():
+                if slip.chapter:
+                    comment = chapter_comment_form.save(commit=False)
+                    comment.chapter = slip.chapter
+                    comment.is_approved = False
+                    comment.save()
+                    messages.success(request, '✅ 您的评论已提交，等待审核后显示。')
+                    return redirect('slip_detail', pk=slip.pk)
+                messages.error(request, '❌ 当前竹简未关联篇章，无法提交篇章评论。')
+            else:
+                messages.error(request, '❌ 提交失败，请检查表单内容。')
         else:
-            messages.error(request, '❌ 提交失败，请检查表单内容。')
-    else:
-        form = AnnotationForm()
-    
+            form = AnnotationForm(request.POST)
+            if form.is_valid():
+                annotation = form.save(commit=False)
+                annotation.slip = slip
+                annotation.is_approved = False  # 默认待审核
+                annotation.confidence = 1        # 初始可靠度
+                annotation.likes = 0
+                annotation.save()
+                messages.success(request, '✅ 您的集释已提交，等待审核后显示。')
+                return redirect('slip_detail', pk=slip.pk)
+            else:
+                messages.error(request, '❌ 提交失败，请检查表单内容。')
+
+    if slip.chapter:
+        chapter_comments = slip.chapter.comments.filter(is_approved=True).order_by('-created_at')
+
     # 获取该简下已审核的集释，并分页显示，避免注释过多时页面过长
     annotations_qs = slip.annotations.filter(is_approved=True).order_by('-created_at')
     annotation_page = request.GET.get('anno_page', 1)
@@ -162,6 +201,8 @@ def slip_detail(request, pk):
         'slip': slip,
         'chars': chars,
         'form': form,
+        'chapter_comment_form': chapter_comment_form,
+        'chapter_comments': chapter_comments,
         'annotations': annotation_obj.object_list,
         'annotation_paginator': annotation_paginator,
         'annotation_page_obj': annotation_obj,

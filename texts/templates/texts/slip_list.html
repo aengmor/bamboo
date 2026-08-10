@@ -2,119 +2,162 @@
 {% load text_extras %}
 {# load markdownx #}
 {% block title %}
-    {% if selected_chapter %}
-        {{ selected_chapter.title }} · 释文
-    {% else %}
-        全部释文 · 先秦出土文献数据库
-    {% endif %}
+{% if selected_chapter %}
+{{ selected_chapter.title }} · 释文
+{% else %}
+全部释文 · 先秦出土文献数据库
+{% endif %}
 {% endblock %}
 
 {% block content %}
 
-        {% if selected_chapter %}
-        <p><a href="{% url 'chapter_list' %}" class="back-link">← 返回篇章目录</a></p>
-        <h1 class="chapter-subtitle">📜 {{ selected_chapter.title }}</h1>
-            {% if selected_chapter.description %}
-            <div class="chapter-annotation">
-                {{ selected_chapter.description|linebreaks }}
-            </div>
-            {% endif %}
-        {% else %}
-        <!-- 可选：在全部浏览时显示一个指向目录的链接 -->
-        <p><a href="{% url 'chapter_list' %}" class="back-link">📚 浏览篇章目录</a></p>
-        <h1>📜 竹简释文</h1>
+{% if selected_chapter %}
+<p><a href="{% url 'chapter_list' %}" class="back-link">← 返回篇章目录</a></p>
+<h1 class="chapter-subtitle">📜 {{ selected_chapter.title }}</h1>
+{% if selected_chapter.description %}
+<div class="chapter-annotation">
+    {{ selected_chapter.description|linebreaks }}
+</div>
+{% endif %}
+{% else %}
+<!-- 可选：在全部浏览时显示一个指向目录的链接 -->
+<p><a href="{% url 'chapter_list' %}" class="back-link">📚 浏览篇章目录</a></p>
+<h1>📜 竹简释文</h1>
+{% endif %}
+<!-- 搜索框 -->
+<div class="search-bar">
+    <form method="get" action="">
+        <input type="text" name="q" placeholder="搜索竹简编号或释文内容..." value="{{ query }}">
+
+        <!-- 搜索框下拉选择篇目 -->
+        <select name="chapter">
+            <option value="">全部篇目</option>
+            {% for ch in chapters %}
+            <option value="{{ ch.id }}" {% if selected_chapter_id == ch.id %}selected{% endif %}>
+                {{ ch.title }}
+            </option>
+            {% endfor %}
+        </select>
+
+        <!-- 搜索按钮 -->
+        <button type="submit">🔍 搜索</button>
+        {% if query %}
+        <a href="{% url 'slip_list' %}" class="clear-btn">清除</a>
         {% endif %}
-        <!-- 搜索框 -->
-        <div class="search-bar">
-            <form method="get" action="">
-                <input type="text" name="q" placeholder="搜索竹简编号或释文内容..." value="{{ query }}">
+    </form>
+</div>
 
-                <!-- 搜索框下拉选择篇目 -->
-                <select name="chapter">
-                    <option value="">全部篇目</option>
-                    {% for ch in chapters %}
-                    <option value="{{ ch.id }}" {% if selected_chapter_id == ch.id %}selected{% endif %}>
-                        {{ ch.title }}
-                    </option>
-                    {% endfor %}
-                </select>
+{% if query or selected_chapter_id %}
+<p class="result-info">找到 {{ query_count }} 条释文</p>
+{% endif %}
 
-                <!-- 搜索按钮 -->
-                <button type="submit">🔍 搜索</button>
-                {% if query %}
-                <a href="{% url 'slip_list' %}" class="clear-btn">清除</a>
-                {% endif %}
-            </form>
-        </div>
+<!-- 如果存在 paginated_slips，显示分页平铺列表（用于搜索和按篇过滤） -->
+{% if paginated_slips %}
+<div class="slip-list">
+    {% for item in paginated_slips %}
+    <div class="slip-item">
+        <a href="{% url 'slip_detail' pk=item.pk %}" class="slip-link">
+            <span class="slip-id">{{ item.slip_id }}</span>
+            <span class="slip-content">{{ item.content|linebreaksbr|highlight:query}}</span>
+        </a>
+    </div>
+    {% empty %}
+    <div class="empty-msg">暂无匹配的释文。</div>
+    {% endfor %}
+</div>
 
-        {% if query or selected_chapter_id %}
-        <p class="result-info">找到 {{ query_count }} 条释文</p>
-        {% endif %}
+{% if paginator and page_obj %}
+<div class="pagination" aria-label="分页">
+    {% if page_obj.has_previous %}
+    <a href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.previous_page_number }}"
+        class="button ghost">上一页</a>
+    {% endif %}
+    <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
+    {% if page_obj.has_next %}
+    <a href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.next_page_number }}"
+        class="button ghost">下一页</a>
+    {% endif %}
+</div>
+{% endif %}
+{% else %}
+<!-- 按篇展示 -->
+{% for group in chapter_data %}
+<!-- 篇与篇之间隔开 -->
+{% if not forloop.first %}
+<hr class="chapter-divider">
+{% endif %}
 
-        <!-- 如果存在 paginated_slips，显示分页平铺列表（用于搜索和按篇过滤） -->
-        {% if paginated_slips %}
-            <div class="slip-list">
-                {% for item in paginated_slips %}
-                <div class="slip-item">
-                    <a href="{% url 'slip_detail' pk=item.pk %}" class="slip-link">
-                        <span class="slip-id">{{ item.slip_id }}</span>
-                        <span class="slip-content">{{ item.content|linebreaksbr|highlight:query}}</span>
-                    </a>
+<h1 class="chapter-title">{{ group.chapter.title }}</h1>
+
+<div class="slip-list">
+    {% for item in group.slips %}
+    <div class="slip-item">
+        <a href="{% url 'slip_detail' pk=item.pk %}" class="slip-link">
+            <span class="slip-id">{{ item.slip_id }}</span>
+            <span class="slip-content">{{ item.content|linebreaksbr|highlight:query}}</span>
+        </a>
+    </div>
+    {% empty %}
+    <div class="empty-msg">该篇暂无释文。</div>
+    {% endfor %}
+</div>
+
+{% empty %}
+<div class="empty-msg">📭 暂无释文数据。</div>
+{% endfor %}
+
+{% if paginator and page_obj and page_obj.has_other_pages %}
+<div class="pagination" aria-label="篇章分页">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="button ghost">上一页</a>
+    {% endif %}
+    <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="button ghost">下一页</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endif %}
+
+{% if selected_chapter %}
+<div class="chapter-comments">
+    {% if selected_chapter_comments %}
+    <details class="comments-toggle">
+        <summary>💬 查看 {{ selected_chapter.title }} 的评论（{{ selected_chapter_comments|length }}）</summary>
+        <div class="comments-list">
+            {% for comment in selected_chapter_comments %}
+            <div class="comment-item">
+                <div class="comment-meta">
+                    <span class="comment-author">{{ comment.author }}</span>
+                    <span class="comment-date">{{ comment.created_at|date:"Y-m-d" }}</span>
                 </div>
-                {% empty %}
-                <div class="empty-msg">暂无匹配的释文。</div>
-                {% endfor %}
+                <div class="comment-content">{{ comment.content|linebreaksbr }}</div>
             </div>
-
-            {% if paginator and page_obj %}
-            <div class="pagination" aria-label="分页">
-                {% if page_obj.has_previous %}
-                    <a href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.previous_page_number }}" class="button ghost">上一页</a>
-                {% endif %}
-                <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
-                {% if page_obj.has_next %}
-                    <a href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.next_page_number }}" class="button ghost">下一页</a>
-                {% endif %}
-            </div>
-            {% endif %}
-        {% else %}
-        <!-- 按篇展示 -->
-        {% for group in chapter_data %}
-        <!-- 篇与篇之间隔开 -->
-        {% if not forloop.first %}
-        <hr class="chapter-divider">
-        {% endif %}
-
-        <h1 class="chapter-title">{{ group.chapter.title }}</h1>
-
-        <div class="slip-list">
-            {% for item in group.slips %}
-            <div class="slip-item">
-                <a href="{% url 'slip_detail' pk=item.pk %}" class="slip-link">
-                    <span class="slip-id">{{ item.slip_id }}</span>
-                    <span class="slip-content">{{ item.content|linebreaksbr|highlight:query}}</span>
-                </a>
-            </div>
-            {% empty %}
-            <div class="empty-msg">该篇暂无释文。</div>
             {% endfor %}
         </div>
-        {% empty %}
-        <div class="empty-msg">📭 暂无释文数据。</div>
-        {% endfor %}
+    </details>
+    {% else %}
+    <p class="no-comments">📭 暂无篇章评论。欢迎学者发表见解。</p>
+    {% endif %}
 
-        {% if paginator and page_obj and page_obj.has_other_pages %}
-        <div class="pagination" aria-label="篇章分页">
-            {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}" class="button ghost">上一页</a>
-            {% endif %}
-            <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="button ghost">下一页</a>
-            {% endif %}
-        </div>
-        {% endif %}
-        {% endif %}
-    
-    
+    <div class="submit-form">
+        <h4>✍️ 发布评论</h4>
+        <p class="form-tip">评论将审核后显示</p>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="chapter_id" value="{{ selected_chapter.id }}">
+            <div class="form-field">
+                {{ form.author.label_tag }}
+                {{ form.author }}
+            </div>
+            <div class="form-field">
+                {{ form.content.label_tag }}
+                {{ form.content }}
+            </div>
+            <button type="submit" class="submit-btn">提交评论</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
