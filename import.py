@@ -51,7 +51,7 @@ def parse_import_file(path):
     return records
 
 
-def import_records(records, reset=False):
+def import_records(records):
     created_slips = 0
     created_chars = 0
     order = 1
@@ -68,7 +68,7 @@ def import_records(records, reset=False):
             slip.content = content
             slip.save()
 
-        if SlipChar.objects.filter(slip=slip).exists() and not reset:
+        if SlipChar.objects.filter(slip=slip).exists():
             print(f'⏭️ 跳过：{slip_id}（已有字数据）')
             continue
 
@@ -101,7 +101,7 @@ def main():
 
     records = parse_import_file(file_path)
 
-    import_records(records, reset=args.reset)
+    import_records(records)
 
 
 if __name__ == '__main__':

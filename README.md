@@ -1,7 +1,7 @@
 # 📜 先秦出土文献数据库
 （反正写了也没人看，就随便写）
 
-首次接触网页开发的练习。
+首次接触网页开发的练习。暂时托管于[PythonAnywhere](aengmore.pythonanywhere.com)。
 
 姑且算是个基于 Django 构建的出土文献数字化平台，目标是像著名的苏美尔语在线词典[ePSD2](https://oracc.museum.upenn.edu/epsd2/)那样，做成文字编、辞典和语料库联动的超级系统。当然，水平所限，这个目标恐怕永远不能完成。
 
