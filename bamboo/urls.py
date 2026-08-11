@@ -28,4 +28,7 @@ urlpatterns = [
     path('character/<int:pk>/', views.character_detail, name='character_detail'),
     path('chapters/', views.chapter_list, name='chapter_list'),
     path('glyph/<int:pk>/', views.glyph_detail, name='glyph_detail'),
+    path('collections/', views.collection_list, name='collection_list'),
+    path('collection/<int:pk>/', views.collection_detail, name='collection_detail'),
+    path('search/', views.search_view, name='search'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

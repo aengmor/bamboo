@@ -1,0 +1,324 @@
+{% extends 'texts/base.html' %}
+{% load static %}
+
+{% block title %}{{ collection.name }} · 批次详情{% endblock %}
+
+{% block extra_head %}
+<style>
+    .collection-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #dacbb8;
+    }
+
+    .collection-header h1 {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 8px;
+    }
+
+    .collection-header p {
+        color: #7a5d3c;
+        font-size: 16px;
+    }
+
+    .chapter-block {
+        margin: 28px 0 16px 0;
+        padding: 18px 22px;
+        background-color: #fdfbf7;
+        border-radius: 14px;
+        border: 1px solid #ede6db;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    .chapter-block h2 {
+        font-size: 22px;
+        font-weight: normal;
+        color: #3d2c1b;
+        margin: 0 0 6px 0;
+    }
+
+    .chapter-block .slip-count {
+        color: #aa9b88;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .slip-list-inline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 16px;
+        padding: 8px 0 12px 0;
+        border-bottom: 1px solid #f0ebe3;
+    }
+
+    .slip-list-inline a {
+        color: #4d3822;
+        text-decoration: none;
+        font-size: 15px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .slip-list-inline a:hover {
+        background: #efe8dd;
+    }
+
+    /* 评论区域（与之前的样式一致，略作调整） */
+    .chapter-comments {
+        margin-top: 14px;
+        padding: 12px 16px;
+        background-color: #faf8f4;
+        border-radius: 10px;
+        border: 1px solid #ede6db;
+    }
+
+    .comments-toggle summary {
+        cursor: pointer;
+        font-size: 15px;
+        color: #7a5d3c;
+        padding: 4px 0;
+        user-select: none;
+    }
+
+    .comments-list {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .comment-item {
+        padding: 10px 14px;
+        background-color: #fffdf9;
+        border-radius: 8px;
+        border: 1px solid #e6ddd0;
+    }
+
+    .comment-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 13px;
+        color: #7a5d3c;
+        margin-bottom: 4px;
+    }
+
+    .comment-author {
+        font-weight: bold;
+    }
+
+    .comment-content {
+        font-size: 15px;
+        line-height: 1.7;
+        color: #3d2c1b;
+    }
+
+    .no-comments {
+        font-size: 14px;
+        color: #aa9b88;
+        margin: 6px 0;
+    }
+
+    .comment-submit {
+        margin-top: 12px;
+    }
+
+    .toggle-comment-form {
+        padding: 4px 14px;
+        font-size: 13px;
+        background: none;
+        border: 1px solid #dacbb8;
+        border-radius: 999px;
+        cursor: pointer;
+        color: #7a5d3c;
+        transition: background 0.2s;
+    }
+
+    .toggle-comment-form:hover {
+        background: #efe8dd;
+    }
+
+    .comment-form-wrapper {
+        padding: 14px;
+        background-color: #f5f0e8;
+        border-radius: 8px;
+        border: 1px solid #e6ddd0;
+        margin-top: 10px;
+    }
+
+    .comment-form-wrapper .form-field {
+        margin-bottom: 10px;
+    }
+
+    .comment-form-wrapper input,
+    .comment-form-wrapper textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #dacbb8;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    .comment-form-wrapper .submit-btn {
+        padding: 6px 18px;
+        font-size: 14px;
+        background: #7a5d3c;
+        color: white;
+        border: none;
+        border-radius: 999px;
+        cursor: pointer;
+    }
+
+    .comment-form-wrapper .submit-btn:hover {
+        background: #5b432c;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin: 20px 0 10px;
+        color: #7a5d3c;
+        text-decoration: none;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .messages {
+        margin: 10px 0;
+    }
+
+    .message {
+        padding: 10px 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+
+    .message.success {
+        background: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+    }
+
+    .message.error {
+        background: #ffebee;
+        color: #c62828;
+        border: 1px solid #ef9a9a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'collection_list' %}" class="back-link">← 返回批次目录</a>
+
+<div class="collection-header">
+    <h1>{{ collection.name }}</h1>
+    <p>{{ collection.description|default:"暂无简介" }}</p>
+</div>
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+    <div class="message {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if chapter_data %}
+{% for group in chapter_data %}
+<div class="chapter-block">
+    <a href="{% url 'slip_list' %}?chapter={{ group.chapter.id }}" style="text-decoration: none; color: inherit;">
+        <h2>{{ group.chapter.title }}</h2>
+    </a>
+    <details>
+        <summary class="slip-count">竹简 {{ group.slips|length }} 支</summary>
+        <!-- 竹简列表（紧凑显示） -->
+        <div class="slip-list-inline">
+            {% for slip in group.slips %}
+            <a href="{% url 'slip_detail' pk=slip.pk %}">{{ slip.slip_id }}</a>
+            {% empty %}
+            <span style="color:#aa9b88;">该篇暂无竹简。</span>
+            {% endfor %}
+        </div>
+    </details>
+</div>
+{% endfor %}
+
+{% if paginator and page_obj %}
+<div class="pagination" aria-label="篇章分页">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="button ghost">上一页</a>
+    {% endif %}
+    <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="button ghost">下一页</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p class="empty-msg">该批次下暂无篇章。</p>
+{% endif %}
+
+<div class="chapter-comments">
+    {% if selected_chapter_comments %}
+    <details class="comments-toggle">
+        <summary>💬 查看 {{ selected_chapter.title }} 的评论（{{ selected_chapter_comments|length }}）</summary>
+        <div class="comments-list">
+            {% for comment in selected_chapter_comments %}
+            <div class="comment-item">
+                <div class="comment-meta">
+                    <span class="comment-author">{{ comment.author }}</span>
+                    <span class="comment-date">{{ comment.created_at|date:"Y-m-d" }}</span>
+                </div>
+                <div class="comment-content">{{ comment.content|linebreaksbr }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </details>
+    {% else %}
+    <p class="no-comments">📭 暂无批次评论。欢迎学者发表见解。</p>
+    {% endif %}
+
+    <div class="submit-form">
+        <h4>✍️ 发布评论</h4>
+        <p class="form-tip">评论将审核后显示</p>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="chapter_id" value="{{ selected_chapter.id }}">
+            <div class="form-field">
+                {{ form.author.label_tag }}
+                {{ form.author }}
+            </div>
+            <div class="form-field">
+                {{ form.content.label_tag }}
+                {{ form.content }}
+            </div>
+            <button type="submit" class="submit-btn">提交评论</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const buttons = document.querySelectorAll('.toggle-comment-form');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const chapterId = this.dataset.chapter;
+                const wrapper = document.getElementById('comment-form-' + chapterId);
+                if (wrapper) {
+                    const isHidden = wrapper.style.display === 'none';
+                    wrapper.style.display = isHidden ? 'block' : 'none';
+                    this.textContent = isHidden ? '✍️ 收起评注框' : '✍️ 发表评注';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

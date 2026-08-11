@@ -1,0 +1,60 @@
+{% extends 'texts/base.html' %}
+
+{% block title %}高级搜索 · 先秦出土文献数据库{% endblock %}
+
+{% block content %}
+<h1>🔍 高级搜索</h1>
+
+<form method="get" action="" class="search-filter-form">
+    <div class="search-row half">
+        <div class="form-field">
+            <label for="id_q">关键词</label>
+            {{ form.q }}
+        </div>
+        <div class="form-field">
+            <label for="id_search_in">搜索范围</label>
+            {{ form.search_in }}
+        </div>
+    </div>
+
+    <div class="search-row half">
+        <div class="form-field">
+            <label for="id_collection">批次</label>
+            {{ form.collection }}
+        </div>
+        <div class="form-field">
+            <label for="id_chapter">篇目</label>
+            {{ form.chapter }}
+        </div>
+    </div>
+
+    <button type="submit" class="submit-btn">🔍 搜索</button>
+
+    {% if keyword or form.chapter.value %}
+        <a href="{% url 'search' %}" class="clear-btn">清除</a>
+    {% endif %}
+</form>
+
+<!-- 搜索结果 -->
+{% if form.is_valid %}
+    <div class="search-results">
+        <p class="result-info">找到 {{ results|length }} 条结果</p>
+
+        {% if results %}
+            <ul class="search-result-list">
+                {% for slip in results %}
+                    <li class="search-result-item">
+                        <span class="slip-id">{{ slip.slip_id }}</span>
+                        <span class="slip-chapter">{{ slip.chapter.title|default:"未分类" }}</span>
+                        <a href="{% url 'slip_detail' pk=slip.pk %}" class="slip-link">
+                            {{ slip.content|truncatewords:20 }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-msg">没有找到匹配的结果。</p>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

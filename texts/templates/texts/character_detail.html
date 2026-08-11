@@ -55,8 +55,9 @@
 </div>
 {% endif %}
 
-<div class="occurrence-section">
-    <h2>📜 出现 {{ total_count }} 次</h2>
+<details class="occurrence-section" open>
+<summary class="occurrence-summary">📜 出现 {{ total_count }} 次</summary>
+<div>
     {% if chapter_dict %}
     {% for chapter_title, sc_list in chapter_dict.items %}
     <div class="chapter-group">
@@ -90,5 +91,6 @@
     <p class="no-data">该字暂未出现在任何释文中。</p>
     {% endif %}
 </div>
+</details>
 </div>
 {% endblock %}

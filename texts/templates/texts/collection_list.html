@@ -1,0 +1,25 @@
+{% extends 'texts/base.html' %}
+
+{% block title %}批次目录 · 先秦出土文献数据库{% endblock %}
+
+{% block content %}
+<h1>📚 批次目录</h1>
+<p style="color: #7a5d3c; margin-bottom: 20px;">按出土文献的收藏单位或整理批次分类浏览</p>
+
+{% if collections %}
+    <ul class="chapter-list">
+        {% for col in collections %}
+            <li class="chapter-item">
+                <a href="{% url 'collection_detail' pk=col.pk %}">
+                    <span class="collection-name">{{ col.name }}</span>
+                    <span class="collection-meta">{{ col.get_chapter_count }} 篇</span>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="empty-msg">暂无批次数据。</p>
+{% endif %}
+
+<a href="{% url 'home' %}" class="back-link">← 返回首页</a>
+{% endblock %}

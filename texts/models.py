@@ -1,5 +1,21 @@
 from django.db import models
 
+class Collection(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="名称")
+    description = models.TextField(blank=True, verbose_name="简介")
+    order = models.IntegerField(default=0, verbose_name="顺序")
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = "批次"
+        verbose_name_plural = "批次"
+
+    def __str__(self):
+        return self.name
+
+    def get_chapter_count(self):
+        return self.chapters.count()
+    
 class Chapter(models.Model):
     """篇目模型（如《曹沫之阵》、《民之父母》）"""
     title = models.CharField(max_length=100, unique=True, verbose_name="篇名")
@@ -10,26 +26,22 @@ class Chapter(models.Model):
         verbose_name="简序",
         help_text="按顺序存储该篇所有简，如 ['41', '1', '37A', '2']"
     )
-
-    # def get_ordered_slips(self):
-    #     """按 slip_order 返回该篇下的所有 SlipText 对象"""
-    #     if not self.slip_order:
-    #         return self.sliptext_set.all()  # fallback：无顺序时按默认
-    #     # 构建一个字典以便快速查找：slip_number → SlipText 对象
-    #     slip_dict = {obj.slip_number: obj for obj in self.sliptext_set.all()}
-    #     ordered = []
-    #     for num in self.slip_order:
-    #         if num in slip_dict:
-    #             ordered.append(slip_dict[num])
-    #     # 补充：slip_order 里没有但实际存在的（防止数据不一致）
-    #     for obj in self.sliptext_set.all():
-    #         if obj.slip_number not in self.slip_order:
-    #             ordered.append(obj)
-    #     return ordered
+    collection = models.ForeignKey(
+        Collection,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='chapters',
+        verbose_name="所属批次"
+    )
 
     def __str__(self):
         return self.title
 
+    class Meta:
+        ordering = ['title']
+        verbose_name = "篇目"
+        verbose_name_plural = "篇目"
 
 class SlipText(models.Model):
     """竹简释文模型"""
@@ -45,7 +57,9 @@ class SlipText(models.Model):
         return self.slip_id
 
     class Meta:
-        ordering = ['order'] 
+        ordering = ['order']
+        verbose_name = "竹简释文"
+        verbose_name_plural = "竹简释文"
 
 class Glyph(models.Model):
     """字形"""
@@ -176,6 +190,11 @@ class Character(models.Model):
         parts = [part for part in (self.initial, self.rhyme, self.pronunciation) if part]
         return ' '.join(parts) if parts else ''
 
+    class Meta:
+        ordering = ['glyph']
+        verbose_name = "字"
+        verbose_name_plural = "字"
+
 class SlipChar(models.Model):
     """竹简上的字——关联竹简和字，并记录位置"""
     slip = models.ForeignKey('SlipText', on_delete=models.CASCADE, related_name='slipchars', verbose_name="竹简")
@@ -229,3 +248,18 @@ class ChapterComment(models.Model):
 
     def __str__(self):
         return f"{self.chapter.title} · {self.author} · {self.created_at.strftime('%Y-%m-%d')}"
+
+class CollectionComment(models.Model):
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name='comments', verbose_name="批次")
+    author = models.CharField(max_length=100, verbose_name="评论人")
+    content = models.TextField(verbose_name="内容")
+    is_approved = models.BooleanField(default=False, verbose_name="已审核")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="时间")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "批次评论"
+        verbose_name_plural = "批次评论"
+
+    def __str__(self):
+        return f"{self.collection.name} · {self.author}"

@@ -1,12 +1,10 @@
-import random
-
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db.models import Count, Q, Prefetch
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from urllib.parse import urlencode
-from .models import SlipText, Chapter, Character, SlipChar, Annotation, ChapterComment, Glyph
-from .forms import AnnotationForm, ChapterCommentForm, GlyphAnnotationForm
+from .models import Collection, SlipText, Chapter, Character, SlipChar, Annotation, ChapterComment, Glyph
+from .forms import AnnotationForm, ChapterCommentForm, GlyphAnnotationForm, CollectionCommentForm, SearchForm
 
 # 这是应用的视图文件，负责把数据库中的数据读取出来，传给前端模板显示。
 # 所有函数都返回一个 render(request, template, context) 用于渲染页面。
@@ -22,22 +20,14 @@ def home(request):
     # 最近更新的竹简（取最近添加的5条），预取篇目避免模板中 N+1 查询
     recent_slips = SlipText.objects.select_related('chapter').order_by('-id')[:5]
     
-    # 随机展示一条已审批的集释，避免使用 inefficient order_by('?')
-    approved_annotations = Annotation.objects.filter(is_approved=True)
-    random_annotation = None
-    annotation_count = approved_annotations.count()
-    if annotation_count:
-        random_index = random.randrange(annotation_count)
-        random_annotation = approved_annotations[random_index]
-    
     context = {
         'total_chapters': total_chapters,
         'total_slips': total_slips,
         'total_chars': total_chars,
         'total_annotations': total_annotations,
         'recent_slips': recent_slips,
-        'random_annotation': random_annotation,
     }
+
     return render(request, 'texts/home.html', context)
 
 def slip_list(request):
@@ -106,7 +96,7 @@ def slip_list(request):
         chapters_qs = Chapter.objects.order_by('title').prefetch_related(
             Prefetch('slip_texts', queryset=slips_queryset.order_by('order', 'slip_id'), to_attr='filtered_slips'),
         )
-        paginator = Paginator(chapters_qs, 10)
+        paginator = Paginator(chapters_qs, 20)
         try:
             page_obj = paginator.page(page)
         except PageNotAnInteger:
@@ -334,3 +324,107 @@ def glyph_detail(request, pk):
         'form': form,
     }
     return render(request, 'texts/glyph_detail.html', context)
+
+def collection_list(request):
+    collections = Collection.objects.all().order_by('order', 'name')
+    return render(request, 'texts/collection_list.html', {'collections': collections})
+
+def collection_detail(request, pk):
+    collection = get_object_or_404(Collection, pk=pk)
+    chapters = collection.chapters.all().order_by('title')
+    
+    # 评论处理
+    if request.method == 'POST':
+        form = CollectionCommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.collection = collection
+            comment.is_approved = False
+            comment.save()
+            messages.success(request, '✅ 评论已提交，等待审核。')
+            return redirect('collection_detail', pk=collection.pk)
+    else:
+        form = CollectionCommentForm()
+
+    # 分页处理篇章列表，避免单页过长
+    paginator = Paginator(chapters, 20)
+    page = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+        
+    # 为每个篇章预加载竹简
+    chapter_data = []
+    for ch in page_obj.object_list:
+        slips = ch.slip_texts.all().order_by('order', 'slip_id')
+        chapter_data.append({
+            'chapter': ch,
+            'slips': slips,
+        })
+
+    comments = collection.comments.filter(is_approved=True).order_by('-created_at')
+
+    context = {
+        'collection': collection,
+        'chapter_data': chapter_data,
+        'comments': comments,
+        'form': form,
+        'paginator': paginator,
+        'page_obj': page_obj,
+    }
+
+    return render(request, 'texts/collection_detail.html', context)
+
+def search_view(request):
+    form = SearchForm(request.GET or None)
+    results = SlipText.objects.none()  # 空查询集
+    keyword = ''
+    search_in = 'all'
+
+    if form.is_valid():
+        keyword = form.cleaned_data.get('q', '').strip()
+        chapter = form.cleaned_data.get('chapter')
+        collection = form.cleaned_data.get('collection')
+        search_in = form.cleaned_data.get('search_in', 'all')
+
+        # 基础查询：先限制到竹简
+        results = SlipText.objects.select_related('chapter').all()
+
+        # 按批次筛选（通过 chapter 的关联）
+        if collection:
+            results = results.filter(chapter__collection=collection)
+
+        # 按篇目筛选
+        if chapter:
+            results = results.filter(chapter=chapter)
+
+        # 关键词搜索
+        if keyword:
+            if search_in == 'all':
+                results = results.filter(
+                    Q(content__icontains=keyword) |
+                    Q(slip_id__icontains=keyword)
+                )
+            elif search_in == 'content':
+                results = results.filter(content__icontains=keyword)
+            elif search_in == 'slip_id':
+                results = results.filter(slip_id__icontains=keyword)
+            elif search_in == 'character':
+                # 搜索字符表：找到匹配的字符，再取关联的竹简
+                chars = Character.objects.filter(glyph__icontains=keyword)
+                # 通过 SlipChar 关联到 SlipText
+                results = results.filter(slipchars__character__in=chars).distinct()
+
+        # 按 order 排序
+        results = results.order_by('chapter', 'order', 'slip_id')
+
+    context = {
+        'form': form,
+        'results': results,
+        'keyword': keyword,
+        'search_in': search_in,
+    }
+    return render(request, 'texts/search.html', context)

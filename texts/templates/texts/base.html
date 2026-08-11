@@ -27,10 +27,12 @@
         <div class="nav-links" id="navLinks">
             <a href="{% url 'home' %}"
                 class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">首页</a>
+                <a href="{% url 'collection_list' %}" class="{% if request.resolver_match.url_name == 'collection_list' %}active{% endif %}">批次</a>
             <a href="{% url 'chapter_list' %}"
-                class="{% if request.resolver_match.url_name == 'chapter_list' %}active{% endif %}">篇章目录</a>
+                class="{% if request.resolver_match.url_name == 'chapter_list' %}active{% endif %}">篇章</a>
             <a href="{% url 'slip_list' %}"
-                class="{% if request.resolver_match.url_name == 'slip_list' and not request.GET.chapter %}active{% endif %}">全部释文</a>
+                class="{% if request.resolver_match.url_name == 'slip_list' and not request.GET.chapter %}active{% endif %}">全部</a>
+            <a href="{% url 'search' %}" class="{% if request.resolver_match.url_name == 'search' %}active{% endif %}">🔍 搜索</a>
             <span class="sep">|</span>
             <a href="#">关于</a>
         </div>

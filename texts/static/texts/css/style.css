@@ -923,3 +923,116 @@ mark {
     gap: 6px;
     flex-wrap: wrap;
 }
+
+/* 搜索筛选表单 */
+.search-filter-form {
+    background: #faf8f4;
+    padding: 24px 28px;
+    border-radius: 14px;
+    border: 1px solid #ede6db;
+    margin-bottom: 30px;
+}
+
+.search-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.search-row .form-field {
+    flex: 1;
+    min-width: 180px;
+}
+
+.search-filter-form .form-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #5a4a3a;
+    margin-bottom: 2px;
+}
+
+.search-filter-form input,
+.search-filter-form select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #dacbb8;
+    border-radius: 8px;
+    font-size: 15px;
+    background: white;
+    font-family: inherit;
+}
+
+.search-filter-form .submit-btn {
+    margin-top: 12px;
+    padding: 8px 24px;
+    background: #7a5d3c;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.search-filter-form .submit-btn:hover {
+    background: #5b432c;
+}
+
+.search-filter-form .clear-btn {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 8px 20px;
+    color: #7a5d3c;
+    background: #efe8dd;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 15px;
+    margin-left: 10px;
+}
+
+.search-filter-form .clear-btn:hover {
+    background: #ddd0bd;
+}
+
+/* 搜索结果列表 */
+.search-result-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.search-result-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid #ede6db;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 16px;
+}
+
+.search-result-item .slip-id {
+    font-weight: bold;
+    background: #efe8dd;
+    padding: 2px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    color: #7a5d3c;
+}
+
+.search-result-item .slip-chapter {
+    color: #aa9b88;
+    font-size: 13px;
+}
+
+.search-result-item .slip-link {
+    flex: 1;
+    color: #3d2c1b;
+    text-decoration: none;
+    font-size: 16px;
+    min-width: 200px;
+}
+
+.search-result-item .slip-link:hover {
+    text-decoration: underline;
+}

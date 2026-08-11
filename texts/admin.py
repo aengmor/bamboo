@@ -1,7 +1,7 @@
 from adminsortable2.admin import SortableAdminMixin
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import ChapterComment, Character, SlipChar, SlipText, Chapter, Annotation, Glyph, GlyphAnnotation
+from .models import ChapterComment, Character, Collection, CollectionComment, SlipChar, SlipText, Chapter, Annotation, Glyph, GlyphAnnotation
 
 @admin.register(SlipText)
 class SlipTextAdmin(SortableAdminMixin, admin.ModelAdmin):
@@ -18,7 +18,7 @@ class SlipTextAdmin(SortableAdminMixin, admin.ModelAdmin):
 class ChapterAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'description')
     search_fields = ('title',)
-    fields = ('title', 'description', 'slip_order')
+    fields = ('title', 'description', 'collection', 'slip_order')
 
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
@@ -104,3 +104,20 @@ class ChapterCommentAdmin(admin.ModelAdmin):
     def content_preview(self, obj):
         return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
     content_preview.short_description = "评论预览"
+
+@admin.register(Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'order', 'get_chapter_count')
+    list_editable = ('order',)
+    search_fields = ('name',)
+
+    def get_chapter_count(self, obj):
+        return obj.chapters.count()
+    get_chapter_count.short_description = "篇数"
+
+@admin.register(CollectionComment)
+class CollectionCommentAdmin(admin.ModelAdmin):
+    list_display = ('collection', 'author', 'content', 'is_approved', 'created_at')
+    list_filter = ('collection', 'is_approved')
+    list_editable = ('is_approved',)
+    search_fields = ('author', 'content')
