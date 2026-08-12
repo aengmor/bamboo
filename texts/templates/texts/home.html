@@ -50,19 +50,4 @@
     {% else %}
         <p class="note-text">暂无数据。</p>
     {% endif %}
-
-    <!-- 随机集释 -->
-    <h2 class="section-title">💬 集释选读</h2>
-    {% if random_annotation %}
-        <div class="annotation-teaser">
-            “{{ random_annotation.content|truncatechars:120 }}”
-            <div class="annotation-note">
-                —— <span class="author">{{ random_annotation.author }}</span>
-                · {{ random_annotation.get_annotation_type_display }}
-                · 可靠度 {{ random_annotation.confidence }}/5
-            </div>
-        </div>
-    {% else %}
-        <p class="note-text">暂无集释。欢迎学者提交您的见解。</p>
-    {% endif %}
 {% endblock %}

@@ -8,15 +8,24 @@
 {% endblock %}
 
 {% block content %}
-<a href="javascript:history.back()" class="back-link">← 返回</a>
+
+<div class="toolbar">
+    <a href="javascript:history.back()" class="back-link">← 返回</a>
+    <button id="toggle-view">🖼️ 字形大图</button>
+</div>
 
 <div class="char-header">
     <div>
-        <h1>{{ char.glyph }}</h1>
+        <a href="https://zi.tools/zi/{{ char.glyph }}" target="_blank" class="back-link">
+            <h1>{{ char.glyph }}</h1>
+        </a>
+
         <div class="char-meta">
-            {% if char.get_phonetic %}
-            <span class="phonetic-box">{{ char.get_phonetic }}</span>
-            {% endif %}
+            <span class="phonetic-box">
+                <strong>{{ char.initial|default:"—" }}</strong><span
+                    class="label">纽</span><strong>{{char.rhyme|default:"—"}}</strong><span class="label">部</span>
+                <span class="label">音</span><strong>{{ char.pronunciation|default:"—" }}</strong>
+            </span>
             {% if char.meaning %}
             <span>📖 {{ char.meaning }}</span>
             {% endif %}
@@ -28,13 +37,6 @@
     {% if char.glyph_image %}
     <img src="{{ char.glyph_image.url }}" alt="{{ char.glyph }}" class="char-glyph-image">
     {% endif %}
-</div>
-
-<div class="glyph-extra">
-    <div class="glyph-grid">
-        <strong>{{ char.initial|default:"—" }}</strong><span class="label">纽</span><strong>{{ char.rhyme|default:"—" }}</strong><span class="label">部</span>
-        <span class="label">音</span><strong>{{ char.pronunciation|default:"—" }}</strong>
-    </div>
 </div>
 
 {% if picker_groups %}
@@ -55,27 +57,69 @@
 </div>
 {% endif %}
 
-<details class="occurrence-section" open>
-<summary class="occurrence-summary">📜 出现 {{ total_count }} 次</summary>
-<div>
-    {% if chapter_dict %}
-    {% for chapter_title, sc_list in chapter_dict.items %}
-    <div class="chapter-group">
-        <h3>{{ chapter_title }} </h3>
-        {% for sc in sc_list %}
-        <div class="occurrence-item">
-            <strong><a href="{% url 'slip_detail' pk=sc.slip.pk %}">{{ sc.slip.slip_id }} · 第 {{ sc.position }} 字</a></strong>
-            <span class="context-preview">{{ sc.context }}</span>
-            {% if sc.glyph_obj and sc.glyph_obj.image %}
-            <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
-            {% else %}
-            <span class="char-placeholder"></span>
+<details class="occurrence-section" id="view-list" open>
+    <summary class="occurrence-summary">📜 出现 {{ total_count }} 次</summary>
+    <div>
+        {% if chapter_dict %}
+        {% for chapter_title, sc_list in chapter_dict.items %}
+        <div class="chapter-group">
+            <h3>{{ chapter_title }} </h3>
+            {% for sc in sc_list %}
+            <div class="occurrence-item">
+                <strong><a href="{% url 'slip_detail' pk=sc.slip.pk %}">{{ sc.slip.slip_id }} · 第 {{ sc.position }}
+                        字</a></strong>
+                <span class="context-preview">{{ sc.context }}</span>
+                {% if sc.glyph_obj and sc.glyph_obj.image %}
+                <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
+                {% else %}
+                <span class="char-placeholder"></span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+
+        {% if occurrence_paginator and occurrence_page_obj %}
+        <div class="pagination" aria-label="出现位置分页">
+            {% if occurrence_page_obj.has_previous %}
+            <a href="?page={{ occurrence_page_obj.previous_page_number }}" class="button ghost">上一页</a>
+            {% endif %}
+            <span class="page-info">第 {{ occurrence_page_obj.number }} / {{ occurrence_paginator.num_pages }} 页</span>
+            {% if occurrence_page_obj.has_next %}
+            <a href="?page={{ occurrence_page_obj.next_page_number }}" class="button ghost">下一页</a>
             {% endif %}
         </div>
+        {% endif %}
+        {% else %}
+        <p class="no-data">该字暂未出现在任何释文中。</p>
+        {% endif %}
+    </div>
+</details>
+
+<!-- 字形图片网格视图 -->
+<details class="occurrence-section" id="view-grid" open>
+    <summary class="occurrence-summary">🖼️ 字形图 {{ total_count }} 张</summary>
+    {% if chapter_dict %}
+    {% for chapter_title, sc_list in chapter_dict.items %}
+    <div class="glyph-grid">
+        {% for sc in sc_list %}
+        <a href="{% url 'slip_detail' pk=sc.slip.pk %}" style="text-decoration: none; color: inherit;">
+        <div class="glyph-card">
+            {% if sc.glyph_obj and sc.glyph_obj.image %}
+            <img src="{{ sc.glyph_obj.image.url }}" alt="{{ char.glyph }}" class="glyph-large">
+            {% else %}
+            <div class="char-placeholder"></div>
+            {% endif %}
+            <div class="glyph-info">
+                <span class="glyph-slip">{{ sc.glyph_obj.slip.slip_id }}</span>
+                <span class="glyph-position">{{ sc.slip.slip_id }} · 第 {{sc.position }} 字</span>
+                <span class="glyph-notes">{{ sc.glyph_obj.notes }}</span>
+            </div>
+        </div>
+        </a>
         {% endfor %}
     </div>
     {% endfor %}
-
     {% if occurrence_paginator and occurrence_page_obj %}
     <div class="pagination" aria-label="出现位置分页">
         {% if occurrence_page_obj.has_previous %}
@@ -88,9 +132,58 @@
     </div>
     {% endif %}
     {% else %}
-    <p class="no-data">该字暂未出现在任何释文中。</p>
+    <p class="no-data">该字暂无字形图。</p>
     {% endif %}
-</div>
 </details>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const listView = document.getElementById('view-list');
+        const gridView = document.getElementById('view-grid');
+        const btn = document.getElementById('toggle-view');
+
+        function updateButtons() {
+            btn.textContent = listView.style.display === 'block' ? '🖼️ 字形大图' : '📋 列表视图';
+        }
+
+        btn.addEventListener('click', function () {
+            if (listView.style.display === 'none' || gridView.style.display === 'block') {
+                listView.style.display = 'block';
+                gridView.style.display = 'none';
+            } else {
+                listView.style.display = 'none';
+                gridView.style.display = 'block';
+            }
+            localStorage.setItem('viewMode', listView.style.display === 'block' ? '1' : '0');
+            updateButtons();
+        });
+
+        if (localStorage.getItem('viewMode') === '1') {
+            listView.style.display = 'block';
+            gridView.style.display = 'none';
+        }
+
+        if (localStorage.getItem('viewMode') === '0') {
+            listView.style.display = 'none';
+            gridView.style.display = 'block';
+        }
+
+        updateButtons();
+
+        const params = new URLSearchParams(window.location.search);
+        const highlightPos = params.get('highlight_pos');
+        if (highlightPos) {
+            const el = document.querySelector('[data-position="' + highlightPos + '"]');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('highlight');
+                setTimeout(() => el.classList.remove('highlight'), 3600);
+            }
+        }
+    });
+</script>
 {% endblock %}

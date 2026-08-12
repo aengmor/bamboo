@@ -7,10 +7,8 @@
 {% endblock %}
 
 {% block content %}
-
-<a href="{% url 'slip_list' %}" class="back-link">← 返回列表</a>
-
 <span class="toolbar">
+    <a href="{% url 'slip_list' %}" class="back-link">← 返回列表</a>
     <button id="toggle-phonetic">🔊 隐藏注音</button>
     <button id="toggle-slip-image">🖼️ 隐藏竹简图</button>
     <button id="toggle-glyph">🔍 隐藏字形图</button>

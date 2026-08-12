@@ -416,7 +416,7 @@ def search_view(request):
                 # 搜索字符表：找到匹配的字符，再取关联的竹简
                 chars = Character.objects.filter(glyph__icontains=keyword)
                 # 通过 SlipChar 关联到 SlipText
-                results = results.filter(slipchars__character__in=chars).distinct()
+                results = results.filter(slipchar__character__in=chars).distinct()
 
         # 按 order 排序
         results = results.order_by('chapter', 'order', 'slip_id')
