@@ -134,10 +134,12 @@ def slip_list(request):
 def slip_detail(request, pk):
     slip = get_object_or_404(SlipText.objects.select_related('chapter'), pk=pk)
 
-    # 获取该简上的所有字，按位置排序；批量加载当前简的字形图片以避免 N+1 查询
+    # 获取该简上的所有字，按位置排序，并批量加载关联字形，减少 N+1 查询。
     chars = slip.slipchars.select_related('character').order_by('position')
-    glyphs = Glyph.objects.filter(slip=slip)
-    glyph_map = {glyph.position: glyph for glyph in glyphs}
+    glyph_map = {
+        glyph.position: glyph
+        for glyph in Glyph.objects.filter(slip=slip).select_related('character')
+    }
     for sc in chars:
         sc.glyph_obj = glyph_map.get(sc.position)
 

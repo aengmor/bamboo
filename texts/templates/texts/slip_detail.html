@@ -7,12 +7,24 @@
 {% endblock %}
 
 {% block content %}
-<span class="toolbar">
-    <a href="{% url 'slip_list' %}" class="back-link">← 返回列表</a>
-    <button id="toggle-phonetic">🔊 隐藏注音</button>
-    <button id="toggle-slip-image">🖼️ 隐藏竹简图</button>
-    <button id="toggle-glyph">🔍 隐藏字形图</button>
-</span>
+<div class="toolbar">
+    <!-- 返回上一页-->
+    <a href="{% url 'slip_list' %}" class="back-link">← 返回竹简列表</a>
+    <details class="dropdown-toolbar">
+        <summary>⚙️ 显示选项</summary>
+        <div class="dropdown-content">
+            <label class="dropdown-item">
+                <input type="checkbox" id="toggle-phonetic" checked> 显示注音
+            </label>
+            <label class="dropdown-item">
+                <input type="checkbox" id="toggle-glyph" checked> 显示字形图
+            </label>
+            <label class="dropdown-item">
+                <input type="checkbox" id="toggle-slip-image" checked> 显示竹简图
+            </label>
+        </div>
+    </details>
+</div>
 
 <div class="detail-header">
     <h1 class="detail-title">{{ slip.slip_id }}</h1>
@@ -32,18 +44,18 @@
     {% for sc in chars %}
     <div class="char">
         {% if sc.glyph_obj and sc.glyph_obj.image %}
-            <a href="{% url 'glyph_detail' pk=sc.glyph_obj.pk %}">
-                <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
-            </a>
+        <a href="{% url 'glyph_detail' pk=sc.glyph_obj.pk %}">
+            <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
+        </a>
         {% else %}
-            <span class="char-placeholder"></span>
+        <span class="char-placeholder"></span>
         {% endif %}
-            <a href="{% url 'character_detail' pk=sc.character.pk %}" data-position="{{ sc.position }}" class="char-link">
-                <ruby class="char-ruby">
-                    {{ sc.character.glyph }}
-                    <rt>{{ sc.character.pronunciation }}</rt>
-                </ruby>
-            </a>
+        <a href="{% url 'character_detail' pk=sc.character.pk %}" data-position="{{ sc.position }}" class="char-link">
+            <ruby class="char-ruby">
+                {{ sc.character.glyph }}
+                <rt>{{ sc.character.pronunciation|default:"?"}}</rt>
+            </ruby>
+        </a>
     </div>
     {% empty %}
     该简暂无释文。
@@ -155,72 +167,47 @@
 
 {% block extra_js %}
 <script>
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {
         const content = document.querySelector('.detail-content');
         const slipImage = document.querySelector('.slip-image');
-        const glyphBtn = document.getElementById('toggle-glyph');
-        const phoneticBtn = document.getElementById('toggle-phonetic');
-        const slipImgBtn = document.getElementById('toggle-slip-image');
 
-        function updateButtons() {
-            phoneticBtn.textContent = content.classList.contains('phonetic-hidden') ? '🔊 显示注音' : '🔊 隐藏注音';
-            glyphBtn.textContent = content.classList.contains('glyph-hidden') ? '🔍 显示字形图' : '🔍 隐藏字形图';
-            if (!slipImage) {
-                slipImgBtn.textContent = '🖼️ 无竹简图';
-                slipImgBtn.disabled = true;
-                return;
-            }
-            slipImgBtn.textContent = slipImage.classList.contains('hide-slip-image') ? '🖼️ 显示竹简图' : '🖼️ 隐藏竹简图';
-            slipImgBtn.disabled = false;
-        }
+        const phoneticCheck = document.getElementById('toggle-phonetic');
+        const glyphCheck = document.getElementById('toggle-glyph');
+        const slipImageCheck = document.getElementById('toggle-slip-image');
 
-        phoneticBtn.addEventListener('click', function () {
-            const isHidden = content.classList.toggle('phonetic-hidden');
-            localStorage.setItem('phoneticHidden', isHidden ? '1' : '0');
-            updateButtons();
-        });
-
-        glyphBtn.addEventListener('click', function () {
-            const isHidden = content.classList.toggle('glyph-hidden');
-            localStorage.setItem('hideGlyphs', isHidden ? '1' : '0');
-            updateButtons();
-        });
-
-        if (slipImgBtn) {
-            slipImgBtn.addEventListener('click', function () {
-                if (!slipImage) {
-                    return;
-                }
-                const isHidden = slipImage.classList.toggle('hide-slip-image');
-                localStorage.setItem('hideSlipImage', isHidden ? '1' : '0');
-                updateButtons();
-            });
-        }
-
+        // 从 localStorage 恢复状态
         if (localStorage.getItem('phoneticHidden') === '1') {
             content.classList.add('phonetic-hidden');
+            phoneticCheck.checked = false;
         }
         if (localStorage.getItem('hideGlyphs') === '1') {
             content.classList.add('glyph-hidden');
+            glyphCheck.checked = false;
         }
         if (slipImage && localStorage.getItem('hideSlipImage') === '1') {
             slipImage.classList.add('hide-slip-image');
+            slipImageCheck.checked = false;
         }
-        if (!slipImage && slipImgBtn) {
-            slipImgBtn.style.display = 'none';
-        }
-        updateButtons();
 
-        const params = new URLSearchParams(window.location.search);
-        const highlightPos = params.get('highlight_pos');
-        if (highlightPos) {
-            const el = document.querySelector('[data-position="' + highlightPos + '"]');
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('highlight');
-                setTimeout(() => el.classList.remove('highlight'), 3600);
-            }
-        }
-    })();
+        // 监听复选框变化
+        phoneticCheck.addEventListener('change', function () {
+            const isChecked = this.checked;
+            content.classList.toggle('phonetic-hidden', !isChecked);
+            localStorage.setItem('phoneticHidden', isChecked ? '0' : '1');
+        });
+
+        glyphCheck.addEventListener('change', function () {
+            const isChecked = this.checked;
+            content.classList.toggle('glyph-hidden', !isChecked);
+            localStorage.setItem('hideGlyphs', isChecked ? '0' : '1');
+        });
+
+        slipImageCheck.addEventListener('change', function () {
+            if (!slipImage) return;
+            const isChecked = this.checked;
+            slipImage.classList.toggle('hide-slip-image', !isChecked);
+            localStorage.setItem('hideSlipImage', isChecked ? '0' : '1');
+        });
+    })
 </script>
 {% endblock %}

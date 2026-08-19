@@ -200,7 +200,15 @@ class SlipChar(models.Model):
     slip = models.ForeignKey('SlipText', on_delete=models.CASCADE, related_name='slipchars', verbose_name="竹简")
     character = models.ForeignKey(Character, on_delete=models.CASCADE, verbose_name="字")
     position = models.IntegerField(default=0, verbose_name="位置")  # 第几个字
-    
+    # 字状态
+    status = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        verbose_name="字状态",
+        help_text="多个状态用逗号分隔，如 '残损,重文'"
+    )
+
     class Meta:
         ordering = ['position']
     
