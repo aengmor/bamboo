@@ -92,7 +92,7 @@ def import_records(records):
 
 def main():
     parser = argparse.ArgumentParser(description='把简单文本文件导入到竹简数据库')
-    parser.add_argument('--file', default='caomo.md', help='导入文件路径，默认读取 caomo.md')
+    parser.add_argument('--file', default='document.md', help='导入文件路径，默认读取 document.md')
     args = parser.parse_args()
 
     file_path = args.file

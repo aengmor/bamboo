@@ -1185,3 +1185,67 @@ mark {
     accent-color: #7a5d3c;
     cursor: pointer;
 }
+
+/* 字符弹出框样式 */
+#char-popup {
+    border-radius: 16px 16px 0 0;
+}
+
+#char-popup .popup-glyph-large {
+    font-size: 32px;
+    font-family: "KaiTi", "楷体", serif;
+    color: #3d2c1b;
+}
+
+#char-popup .popup-phonetic {
+    color: #7a5d3c;
+    font-size: 14px;
+    margin: 2px 0;
+}
+
+#char-popup .popup-meaning {
+    color: #3d2c1b;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 6px 0;
+}
+
+#char-popup .popup-link {
+    display: inline-block;
+    margin-top: 8px;
+    color: #7a5d3c;
+    text-decoration: underline;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#char-popup .popup-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #aa9b88;
+    padding: 0 6px;
+    line-height: 1;
+}
+
+#char-popup .popup-close:hover {
+    color: #7a5d3c;
+}
+
+/* 弹出框遮罩层（点击背景关闭） */
+#char-popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+#char-popup-overlay.show {
+    opacity: 1;
+}

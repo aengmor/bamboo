@@ -42,21 +42,21 @@
 
 <div class="detail-content">
     {% for sc in chars %}
-    <div class="char">
+    <a href="javascript:void(0)" class="char-link-trigger" data-pk="{{ sc.character.pk }}"
+        data-glyph="{{ sc.character.glyph }}" data-initial="{{ sc.character.initial|default:'' }}"
+        data-rhyme="{{ sc.character.rhyme|default:'' }}" data-pronunciation="{{ sc.character.pronunciation|default:'' }}"
+        data-meaning="{{ sc.character.meaning|default:'' }}" data-position="{{ sc.position }}"
+        style="text-decoration: none; color: inherit; display: inline-flex; flex-direction: column; align-items: center; min-width: 42px; cursor: pointer;">
         {% if sc.glyph_obj and sc.glyph_obj.image %}
-        <a href="{% url 'glyph_detail' pk=sc.glyph_obj.pk %}">
-            <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
-        </a>
+        <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
         {% else %}
         <span class="char-placeholder"></span>
         {% endif %}
-        <a href="{% url 'character_detail' pk=sc.character.pk %}" data-position="{{ sc.position }}" class="char-link">
-            <ruby class="char-ruby">
-                {{ sc.character.glyph }}
-                <rt>{{ sc.character.pronunciation|default:"?"}}</rt>
-            </ruby>
-        </a>
-    </div>
+        <ruby class="char-ruby">
+            {{ sc.character.glyph }}
+            <rt>{{ sc.character.pronunciation|default:"?" }}</rt>
+        </ruby>
+    </a>
     {% empty %}
     该简暂无释文。
     {% endfor %}
@@ -163,10 +163,30 @@
     </div>
 </div>
 
+<!-- 字符信息弹出框 -->
+<!-- 遮罩层 -->
+<div id="char-popup-overlay"></div>
+<div id="char-popup"
+    style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #fffcf8; border-top: 3px solid #7a5d3c; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); padding: 20px 24px; z-index: 1000; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+        <div style="flex: 1;">
+            <h3 id="popup-glyph" style="font-size: 32px; margin: 0; font-family: 'KaiTi', '楷体', serif; color: #3d2c1b; display: inline-block">
+            </h3>
+            <p id="popup-phonetic" style="margin: 4px 0; color: #7a5d3c; font-size: 14px; display: inline-block;"></p>
+            <p id="popup-meaning" style="margin: 8px 0 4px; color: #3d2c1b; font-size: 16px; line-height: 1.6;"></p>
+            <a id="popup-detail-link" href="#"
+                style="display: inline-block; margin-top: 10px; color: #7a5d3c; text-decoration: underline; font-size: 14px; cursor: pointer;">查看详情
+                →</a>
+        </div>
+        <button id="popup-close"
+            style="background: none; border: none; font-size: 24px; cursor: pointer; color: #aa9b88; padding: 0 6px; line-height: 1;">✕</button>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    // 切换元素显示与否
     document.addEventListener('DOMContentLoaded', function () {
         const content = document.querySelector('.detail-content');
         const slipImage = document.querySelector('.slip-image');
@@ -209,5 +229,87 @@
             localStorage.setItem('hideSlipImage', isChecked ? '0' : '1');
         });
     })
+
+    // 弹出框
+    document.addEventListener('DOMContentLoaded', function () {
+        const popup = document.getElementById('char-popup');
+        const overlay = document.getElementById('char-popup-overlay');
+        const popupGlyph = document.getElementById('popup-glyph');
+        const popupPhonetic = document.getElementById('popup-phonetic');
+        const popupMeaning = document.getElementById('popup-meaning');
+        const popupLink = document.getElementById('popup-detail-link');
+        const popupClose = document.getElementById('popup-close');
+
+        // 如果没有弹出框元素，提前退出
+        if (!popup) return;
+
+        // 所有字符链接的点击事件
+        document.querySelectorAll('.char-link-trigger').forEach(function (el) {
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                // 读取 data 属性
+                const glyph = this.dataset.glyph || '?';
+                const initial = this.dataset.initial;
+                const rhyme = this.dataset.rhyme;
+                const pronunciation = this.dataset.pronunciation || '?';
+                const meaning = this.dataset.meaning || '暂无释义';
+                const pk = this.dataset.pk;
+
+                // 填充内容
+                popupGlyph.textContent = glyph;
+
+                // 拼上古音
+                let phoneticParts = [];
+                if (initial) phoneticParts.push(initial + '纽');
+                if (rhyme) phoneticParts.push(rhyme + '韵');
+                if (pronunciation) phoneticParts.push(pronunciation);
+                popupPhonetic.textContent = phoneticParts.length > 0 ? phoneticParts.join(' ｜ ') : '（无上古音信息）';
+
+                popupMeaning.textContent = meaning;
+                popupLink.href = '/character/' + pk + '/';
+
+                // 显示弹出框
+                popup.style.display = 'block';
+                // 触发回流后滑入
+                requestAnimationFrame(function () {
+                    popup.style.transform = 'translateY(0)';
+                    if (overlay) overlay.style.display = 'block';
+                    if (overlay) overlay.classList.add('show');
+                });
+            });
+        });
+
+        // 关闭弹出框
+        function closePopup() {
+            if (popup) {
+                popup.style.transform = 'translateY(100%)';
+                setTimeout(function () {
+                    popup.style.display = 'none';
+                }, 300);
+            }
+            if (overlay) {
+                overlay.classList.remove('show');
+                setTimeout(function () {
+                    overlay.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        if (popupClose) {
+            popupClose.addEventListener('click', closePopup);
+        }
+
+        // 点击遮罩关闭
+        if (overlay) {
+            overlay.addEventListener('click', closePopup);
+        }
+
+        // ESC 键关闭
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closePopup();
+        });
+    });
+
 </script>
 {% endblock %}
