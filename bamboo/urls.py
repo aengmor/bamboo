@@ -31,4 +31,5 @@ urlpatterns = [
     path('collections/', views.collection_list, name='collection_list'),
     path('collection/<int:pk>/', views.collection_detail, name='collection_detail'),
     path('search/', views.search_view, name='search'),
+    path('dictionary/', views.dictionary, name='dictionary'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

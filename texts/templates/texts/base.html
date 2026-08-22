@@ -33,6 +33,7 @@
             <a href="{% url 'slip_list' %}"
                 class="{% if request.resolver_match.url_name == 'slip_list' and not request.GET.chapter %}active{% endif %}">全部</a>
             <a href="{% url 'search' %}" class="{% if request.resolver_match.url_name == 'search' %}active{% endif %}">🔍 搜索</a>
+            <a href="{% url 'dictionary' %}" class="{% if request.resolver_match.url_name == 'dictionary' %}active{% endif %}">字典</a>
             <span class="sep">|</span>
             <a href="#">关于</a>
         </div>

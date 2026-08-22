@@ -1249,3 +1249,171 @@ mark {
 #char-popup-overlay.show {
     opacity: 1;
 }
+
+/* 字典页样式 */
+.dict-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.dict-item {
+    background: #fffdf9;
+    border: 1px solid #ede6db;
+    border-radius: 12px;
+    padding: 14px 18px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dict-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+
+.dict-link {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.dict-glyph {
+    font-size: 32px;
+    font-family: "KaiTi", "楷体", serif;
+    color: #3d2c1b;
+    flex-shrink: 0;
+    width: 48px;
+    text-align: center;
+}
+
+.dict-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.dict-phonetic {
+    font-size: 14px;
+    color: #7a5d3c;
+    margin-bottom: 4px;
+}
+
+.dict-meaning {
+    font-size: 15px;
+    color: #3d2c1b;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+@media (max-width: 600px) {
+    .dict-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.radio-btn {
+    padding: 5px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    border-radius: 9px;
+    color: var(--ink-soft);
+    transition: all 0.18s ease;
+    background: transparent;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+/* 分页 */
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 20px;
+    padding: 10px 14px;
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xs);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    color: var(--ink-soft);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    flex-wrap: wrap;
+}
+.pagination-bar.bottom { margin: 8px 0 0; }
+.pagination-summary { color: var(--ink-soft); }
+.pagination-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pagination-controls button,
+.pagination-size select {
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    border-radius: var(--r-xs);
+    border: 1px solid var(--border);
+    background: var(--paper-card);
+    color: var(--ink-soft);
+}
+.pagination-controls button {
+    padding: 5px 9px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.pagination-controls button:hover:not(:disabled) {
+    border-color: var(--indigo);
+    color: var(--indigo);
+    background: var(--indigo-light);
+}
+.pagination-controls button:disabled {
+    background: var(--paper-inset);
+    color: var(--ink-faint);
+    border-color: var(--border-light);
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+.pagination-controls button[aria-current="page"] {
+    background: var(--indigo);
+    color: #fff;
+    border-color: var(--indigo);
+    cursor: default;
+}
+.pagination-ellipsis { padding: 0 2px; color: var(--ink-faint); }
+.pagination-size { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.pagination-size select { padding: 4px 24px 4px 8px; cursor: pointer; }
+
+/* 搜索框内 select */
+.search-bar .search-select {
+    padding: 10px 28px 10px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    border: none;
+    background: var(--paper-inset);
+    color: var(--ink);
+    border-radius: var(--r-xs);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a837a' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px 8px;
+    min-width: 80px;
+    flex-shrink: 0;
+}
+.search-bar .search-select:focus {
+    outline: 2px solid var(--indigo);
+    outline-offset: 2px;
+}
+@media (max-width: 640px) {
+    .search-box .search-select {
+        padding: 10px 22px 10px 10px;
+        font-size: 13px;
+        min-width: 60px;
+        background-position: right 6px center;
+    }
+}

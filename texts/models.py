@@ -172,6 +172,7 @@ class Character(models.Model):
     initial = models.CharField(max_length=20, blank=True, verbose_name="声母")
     rhyme = models.CharField(max_length=20, blank=True, verbose_name="韵部")
     pronunciation = models.CharField(max_length=10, blank=True, verbose_name="读音")
+    pronunciation_ascii = models.CharField(max_length=100, blank=True, verbose_name="拼音")
     
     # 字形信息（图片或动态组字编码）
     glyph_image = models.ImageField(upload_to='glyphs/', blank=True, null=True, verbose_name="字形图片")

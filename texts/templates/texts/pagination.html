@@ -1,0 +1,65 @@
+{% load text_filters %}
+
+<div class="pagination-bar">
+    <div class="result-info">
+        共 {{ page_obj.paginator.count }} 条
+    </div>
+
+    <div class="pagination-size">
+        <label for="perPageSelect" class="sr-only">每页条数</label>
+        <select id="perPageSelect" onchange="changePerPage(this.value)">
+            {% for opt in per_page_options %}
+                <option value="{{ opt }}" {% if per_page == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+        </select>
+        <span>条/页</span>
+    </div>
+
+    <div class="pagination-controls">
+        {% if page_obj.has_previous %}
+            <a href="?{% update_qs page=page_obj.previous_page_number %}" class="button ghost" aria-label="上一页">‹</a>
+        {% else %}
+            <span class="button ghost disabled" aria-disabled="true">‹</span>
+        {% endif %}
+
+        <span class="pagination-info">
+            <label for="pageJump" class="sr-only">跳至页码</label>
+            <input type="number" id="pageJump" min="1" max="{{ page_obj.paginator.num_pages }}" value="{{ page_obj.number }}" style="width:3.5em; padding:4px; border:1px solid var(--border); border-radius:var(--r-xs); background:var(--paper-card); color:var(--ink); font-family:inherit; text-align:center; font-size:14px;">
+            <span> / {{ page_obj.paginator.num_pages }}</span>
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?{% update_qs page=page_obj.next_page_number %}" class="button ghost" aria-label="下一页">›</a>
+        {% else %}
+            <span class="button ghost disabled" aria-disabled="true">›</span>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // 每页条数切换
+    function changePerPage(val) {
+        const url = new URL(window.location);
+        url.searchParams.set('per_page', val);
+        url.searchParams.set('page', 1);  // 重置到第一页
+        window.location.href = url.toString();
+    }
+
+    // 页码跳转（回车触发）
+    document.addEventListener('DOMContentLoaded', function() {
+        const jumpInput = document.getElementById('pageJump');
+        if (jumpInput) {
+            jumpInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    let page = parseInt(this.value);
+                    const total = parseInt(this.max);
+                    if (isNaN(page) || page < 1) page = 1;
+                    if (page > total) page = total;
+                    const url = new URL(window.location);
+                    url.searchParams.set('page', page);
+                    window.location.href = url.toString();
+                }
+            });
+        }
+    });
+</script>

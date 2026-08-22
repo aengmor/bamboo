@@ -35,7 +35,7 @@
         <input type="text" name="q" placeholder="搜索竹简编号或释文内容..." value="{{ query }}">
 
         <!-- 搜索框下拉选择篇目 -->
-        <select name="chapter">
+        <select name="chapter" class="search-select">
             <option value="">全部篇目</option>
             {% for ch in chapters %}
             <option value="{{ ch.id }}" {% if selected_chapter_id == ch.id %}selected{% endif %}>
@@ -52,9 +52,8 @@
     </form>
 </div>
 
-{% if query or selected_chapter_id %}
-<p class="result-info">找到 {{ query_count }} 条释文</p>
-{% endif %}
+<!-- 分页 -->
+{% include 'texts/pagination.html' with page_obj=page_obj per_page=per_page per_page_options=per_page_options %}
 
 <!-- 如果存在 paginated_slips，显示分页平铺列表（用于搜索和按篇过滤） -->
 {% if paginated_slips %}
@@ -70,21 +69,6 @@
     <div class="empty-msg">暂无匹配的释文。</div>
     {% endfor %}
 </div>
-
-{% if paginator and page_obj %}
-<div class="pagination" aria-label="分页">
-    {% if page_obj.has_previous %}
-    <a href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.previous_page_number }}"
-        class="button ghost">上一页</a>
-    {% endif %}
-    <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
-    {% if page_obj.has_next %}
-    <a href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.next_page_number }}"
-        class="button ghost">下一页</a>
-    {% endif %}
-</div>
-{% endif %}
-
 {% else %}
 <!-- 按篇展示 -->
 {% for group in chapter_data %}
@@ -112,17 +96,6 @@
 <div class="empty-msg">📭 暂无释文数据。</div>
 {% endfor %}
 
-{% if paginator and page_obj and page_obj.has_other_pages %}
-<div class="pagination" aria-label="篇章分页">
-    {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}" class="button ghost">上一页</a>
-    {% endif %}
-    <span class="page-info">第 {{ page_obj.number }} / {{ paginator.num_pages }} 页</span>
-    {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}" class="button ghost">下一页</a>
-    {% endif %}
-</div>
-{% endif %}
 {% endif %}
 
 {% if selected_chapter %}

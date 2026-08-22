@@ -5,7 +5,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from urllib.parse import urlencode
 from .models import Collection, SlipText, Chapter, Character, SlipChar, Annotation, ChapterComment, Glyph
 from .forms import AnnotationForm, ChapterCommentForm, GlyphAnnotationForm, CollectionCommentForm, SearchForm
-
+import zhconv
 # 这是应用的视图文件，负责把数据库中的数据读取出来，传给前端模板显示。
 # 所有函数都返回一个 render(request, template, context) 用于渲染页面。
 
@@ -79,11 +79,22 @@ def slip_list(request):
     paginated_slips = None
     paginator = None
     page_obj = None
+    per_page = request.GET.get('per_page', 50)
+    # 每页条数
+    try:
+        per_page = int(per_page)
+        if per_page <= 0:
+            per_page = 50
+        elif per_page > 200:
+            per_page = 200
+    except ValueError:
+        per_page = 50
+    
     chapter_data = []
 
     if query or selected_chapter:
         page_qs = slips_queryset.order_by('order', 'slip_id')
-        paginator = Paginator(page_qs, 20)
+        paginator = Paginator(page_qs, per_page)
         try:
             page_obj = paginator.page(page)
         except PageNotAnInteger:
@@ -96,7 +107,7 @@ def slip_list(request):
         chapters_qs = Chapter.objects.order_by('title').prefetch_related(
             Prefetch('slip_texts', queryset=slips_queryset.order_by('order', 'slip_id'), to_attr='filtered_slips'),
         )
-        paginator = Paginator(chapters_qs, 20)
+        paginator = Paginator(chapters_qs, per_page)
         try:
             page_obj = paginator.page(page)
         except PageNotAnInteger:
@@ -119,6 +130,9 @@ def slip_list(request):
         'paginated_slips': paginated_slips,
         'paginator': paginator,
         'page_obj': page_obj,
+        'per_page': per_page,
+        'per_page_options': [20, 50, 100, 200],
+        'page_params': request.GET.copy(),  # 保留所有现有参数
         'get_params': get_params,
         'query': query,
         'chapters': Chapter.objects.order_by('title'),
@@ -418,7 +432,7 @@ def search_view(request):
                 # 搜索字符表：找到匹配的字符，再取关联的竹简
                 chars = Character.objects.filter(glyph__icontains=keyword)
                 # 通过 SlipChar 关联到 SlipText
-                results = results.filter(slipchar__character__in=chars).distinct()
+                results = results.filter(slipchars__character__in=chars).distinct()
 
         # 按 order 排序
         results = results.order_by('chapter', 'order', 'slip_id')
@@ -430,3 +444,51 @@ def search_view(request):
         'search_in': search_in,
     }
     return render(request, 'texts/search.html', context)
+
+def dictionary(request):
+    query = request.GET.get('q', '').strip()
+    search_type = request.GET.get('search_type', 'glyph')
+
+    per_page = request.GET.get('per_page', 50) # 每页条数
+    try:
+        per_page = int(per_page)
+        if per_page <= 0:
+            per_page = 50
+        elif per_page > 200:
+            per_page = 200
+    except ValueError:
+        per_page = 50
+
+    characters = Character.objects.all().order_by('glyph')
+    if query:
+        if search_type == "meaning":
+            characters = characters.filter(Q(meaning__icontains=query))
+        elif search_type == "pronunciation":
+            characters = characters.filter(
+            Q(pronunciation_ascii__iexact=query) | 
+            Q(pronunciation__iexact=query)
+            )
+        else:
+            try:
+                quer = zhconv.convert(query, 'zh-hant')
+            except:
+                quer = query
+            characters = characters.filter(
+            Q(glyph__icontains=quer) |
+            Q(pronunciation_ascii__icontains=quer) | 
+            Q(pronunciation__icontains=quer)
+            )
+
+    paginator = Paginator(characters, per_page)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'query': query,
+        'per_page': per_page,
+        'per_page_options': [20, 50, 100, 200],
+        'page_params': request.GET.copy(),  # 保留所有现有参数
+        'search_type': search_type,
+    }
+    return render(request, 'texts/dictionary.html', context)

@@ -27,6 +27,7 @@ for idx, row in df.iterrows():
     data = {
         'glyph': glyph,
         'pronunciation': str(row['音']) if pd.notna(row['音']) else '',
+        'pronunciation_ascii': str(row['拼音']) if pd.notna(row['拼音']) else '',
         'meaning': str(row['釋義']) if pd.notna(row['釋義']) else '',
         'notes': str(row['注釋']) if pd.notna(row['注釋']) else '',
     }

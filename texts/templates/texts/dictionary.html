@@ -1,0 +1,58 @@
+{% extends 'texts/base.html' %}
+{% load static %}
+
+{% block title %}字典 · 先秦出土文献数据库{% endblock %}
+
+{% block content %}
+<h1>📖 字典</h1>
+<p style="color: #7a5d3c; margin-bottom: 20px;">按字形搜索字符，查看详细音韵和释义信息。</p>
+
+<!-- 搜索框 -->
+<div class="search-bar" style="margin-bottom: 20px;">
+    <form method="get" action="">
+        <!-- 搜索框下拉选范围 -->
+        <input type="text" name="q" placeholder="输入字形、拟音、释义" value="{{ query }}">
+        <select name="search_type" class="search-select">
+            <option value="char" {% if search_type == "char" %}selected{% endif %}>字</option>
+            <option value="pronunciation" {% if search_type == "pronunciation" %}selected{% endif %}>音        </option>
+            <option value="meaning" {% if search_type == "meaning" %}selected{% endif %}>义</option>
+        </select>
+        <button type="submit">🔍 搜索</button>
+        {% if query %}
+            <a href="{% url 'dictionary' %}" class="clear-btn">清除</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- 分页 -->
+{% include 'texts/pagination.html' with page_obj=page_obj per_page=per_page per_page_options=per_page_options %}
+
+<!-- 字符列表 -->
+{% if page_obj.object_list %}
+    <div class="dict-list">
+        {% for char in page_obj.object_list %}
+            <div class="dict-item">
+                <a href="{% url 'character_detail' pk=char.pk %}" class="dict-link">
+                    <div class="dict-glyph">{{ char.glyph }}</div>
+                    <div class="dict-info">
+                        <div class="dict-phonetic">
+                            {% if char.pronunciation %}
+                                {{ char.pronunciation }}
+                            {% else %}
+                                <span style="color: #aa9b88;">（无拟音）</span>
+                            {% endif %}
+                        </div>
+                        <div class="dict-meaning">
+                            {{ char.meaning|truncatechars:50|default:"暂无释义" }}
+                        </div>
+                    </div>
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <p class="empty-msg">没有找到匹配的字符。</p>
+{% endif %}
+
+{% endblock %}
