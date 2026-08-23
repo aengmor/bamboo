@@ -68,7 +68,7 @@
             <div class="occurrence-item">
                 <strong><a href="{% url 'slip_detail' pk=sc.slip.pk %}">{{ sc.slip.slip_id }} · 第 {{ sc.position }}
                         字</a></strong>
-                <span class="context-preview">{{ sc.context }}</span>
+                <span class="context-preview">{{ sc.before }}<mark>{{ sc.character.glyph }}</mark>{{ sc.after }}</span>
                 {% if sc.glyph_obj and sc.glyph_obj.image %}
                 <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
                 {% else %}
@@ -104,18 +104,18 @@
     <div class="glyph-grid">
         {% for sc in sc_list %}
         <a href="{% url 'slip_detail' pk=sc.slip.pk %}" style="text-decoration: none; color: inherit;">
-        <div class="glyph-card">
-            {% if sc.glyph_obj and sc.glyph_obj.image %}
-            <img src="{{ sc.glyph_obj.image.url }}" alt="{{ char.glyph }}" class="glyph-large">
-            {% else %}
-            <div class="char-placeholder"></div>
-            {% endif %}
-            <div class="glyph-info">
-                <span class="glyph-slip">{{ sc.glyph_obj.slip.slip_id }}</span>
-                <span class="glyph-position">{{ sc.slip.slip_id }} · 第 {{sc.position }} 字</span>
-                <span class="glyph-notes">{{ sc.glyph_obj.notes }}</span>
+            <div class="glyph-card">
+                {% if sc.glyph_obj and sc.glyph_obj.image %}
+                <img src="{{ sc.glyph_obj.image.url }}" alt="{{ char.glyph }}" class="glyph-large">
+                {% else %}
+                <div class="char-placeholder"></div>
+                {% endif %}
+                <div class="glyph-info">
+                    <span class="glyph-slip">{{ sc.glyph_obj.slip.slip_id }}</span>
+                    <span class="glyph-position">{{ sc.slip.slip_id }} · 第 {{sc.position }} 字</span>
+                    <span class="glyph-notes">{{ sc.glyph_obj.notes }}</span>
+                </div>
             </div>
-        </div>
         </a>
         {% endfor %}
     </div>
@@ -184,6 +184,14 @@
                 setTimeout(() => el.classList.remove('highlight'), 3600);
             }
         }
+
+        const select = document.getElementById('position-select');
+        if (!select) return;
+        select.addEventListener('change', function () {
+            const value = this.value;
+            if (!value) return;
+            window.location.href = value;
+        });
     });
 </script>
 {% endblock %}

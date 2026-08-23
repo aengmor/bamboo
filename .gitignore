@@ -1,3 +1,5 @@
 /static/
 db.sqlite3
 cloudflared
+/texts/__pycache__/
+/texts/migrations/

@@ -270,14 +270,13 @@ def character_detail(request, pk):
         context_after = ''
         if idx != -1:
             before = char_list[max(0, idx-10):idx]
-            context_before = ''.join([c.character.glyph for c in before])
+            sc.before = ''.join([c.character.glyph for c in before])
             after = char_list[idx+1:min(len(char_list), idx+11)]
-            context_after = ''.join([c.character.glyph for c in after])
+            sc.after = ''.join([c.character.glyph for c in after])
         
-        context_str = f"{context_before}【{char.glyph}】{context_after}"
-        sc.context = context_str
-        sc.before = context_before
-        sc.after = context_after
+        # sc.context = f"{context_before}【{char.glyph}】{context_after}"
+        # sc.before = context_before
+        # sc.after = context_after
         
         chapter_dict[chapter_title].append(sc)
     
@@ -316,8 +315,28 @@ def chapter_list(request):
     return render(request, 'texts/chapter_list.html', context)
 
 def glyph_detail(request, pk):
-    glyph = get_object_or_404(Glyph.objects.select_related('character', 'slip__chapter'), pk=pk)
-    
+    glyph = get_object_or_404(Glyph.objects.select_related('character', 'slip__chapter').prefetch_related(
+            Prefetch(
+                'slip__slipchars',
+                queryset=SlipChar.objects.select_related('character').order_by('position'),
+                to_attr='slip_chars'
+            )
+        ), pk=pk)
+
+    # 显示出现位置
+    char_list = getattr(glyph.slip, 'slip_chars', [])
+    idx = next((i for i, c in enumerate(char_list) if c.position == glyph.position), -1)
+
+    context_before = ''
+    context_after = ''
+    if idx != -1:
+        before = char_list[max(0, idx-10):idx]
+        glyph.before = ''.join([c.character.glyph for c in before])
+        after = char_list[idx+1:min(len(char_list), idx+11)]
+        glyph.after = ''.join([c.character.glyph for c in after])
+            
+        # glyph.context= f"{context_before}【{glyph.character.glyph}】{context_after}"
+
     if request.method == 'POST':
         form = GlyphAnnotationForm(request.POST)
         if form.is_valid():
@@ -340,6 +359,7 @@ def glyph_detail(request, pk):
         'form': form,
     }
     return render(request, 'texts/glyph_detail.html', context)
+
 
 def collection_list(request):
     collections = Collection.objects.all().order_by('order', 'name')

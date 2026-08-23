@@ -22,12 +22,12 @@ class ChapterAdmin(admin.ModelAdmin):
 
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
-    list_display = ('glyph', 'initial', 'rhyme', 'pronunciation', 'ligature_code')  # 显示哪些字段
+    list_display = ('glyph', 'initial', 'rhyme', 'pronunciation', 'ids')  # 显示哪些字段
     search_fields = ('glyph',)  # 按字形搜索
     list_editable = ('initial', 'rhyme', 'pronunciation')  # 允许在列表页直接编辑音韵信息
     fieldsets = (
         ('基本信息', {
-            'fields': ('glyph', 'ligature_code')
+            'fields': ('glyph', 'ids')
         }),
         ('上古音信息', {
             'fields': ('initial', 'rhyme', 'pronunciation')

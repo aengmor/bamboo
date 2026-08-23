@@ -444,7 +444,7 @@ h2 {
 
 .toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: 16px;
 }
@@ -762,7 +762,7 @@ h2 {
   border: 1px solid #dacbb8;
 }
 .glyph-extra {
-  margin-top: 20px;
+  margin-top: 0px;
   padding: 16px 22px;
   background: #fff6eb;
   border-radius: 16px;

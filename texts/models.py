@@ -176,7 +176,7 @@ class Character(models.Model):
     
     # 字形信息（图片或动态组字编码）
     glyph_image = models.ImageField(upload_to='glyphs/', blank=True, null=True, verbose_name="字形图片")
-    ligature_code = models.CharField(max_length=100, blank=True, verbose_name="构字式")
+    ids = models.CharField(max_length=100, blank=True, verbose_name="构字式")
     
     # 基本释义
     meaning = models.TextField(blank=True, verbose_name="释义")

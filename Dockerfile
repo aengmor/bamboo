@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/li
 
 # 5. 复制依赖清单并安装
 COPY requirements.txt .
-RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simplepython manage.py runserver 0.0.0.0:8000
 RUN pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 6. 复制项目代码
