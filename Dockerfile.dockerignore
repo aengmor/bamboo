@@ -1,0 +1,13 @@
+**/.git
+**/__pycache__
+**/*.py[cod]
+**/node_modules
+**/dist
+bamboo/.idea
+bamboo/db.sqlite3
+bamboo/media
+bamboo/static
+signlist
+venv
+Wireshark
+*.pcapng
