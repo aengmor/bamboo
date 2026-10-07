@@ -15,21 +15,45 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include, re_path
+from rest_framework.routers import DefaultRouter
+
 from texts import views
 from django.conf.urls.static import static
 from django.conf import settings
+from texts.api_views import (
+    ChapterViewSet,
+    CharacterViewSet,
+    CollectionViewSet,
+    GlyphViewSet,
+    HomeSummaryView,
+    SlipTextViewSet,
+    csrf_token,
+)
+from texts.spa import spa_app
+
+router = DefaultRouter()
+router.register(r'slips', SlipTextViewSet, basename='slip')
+router.register(r'chapters', ChapterViewSet, basename='chapter-api')
+router.register(r'collections', CollectionViewSet, basename='collection-api')
+router.register(r'characters', CharacterViewSet, basename='character-api')
+router.register(r'glyphs', GlyphViewSet, basename='glyph-api')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.home, name='home'),  # 首页
-    path('all/', views.slip_list, name='slip_list'),
-    path('slip/<int:pk>/', views.slip_detail, name='slip_detail'),
-    path('character/<int:pk>/', views.character_detail, name='character_detail'),
-    path('chapters/', views.chapter_list, name='chapter_list'),
-    path('glyph/<int:pk>/', views.glyph_detail, name='glyph_detail'),
-    path('collections/', views.collection_list, name='collection_list'),
-    path('collection/<int:pk>/', views.collection_detail, name='collection_detail'),
-    path('search/', views.search_view, name='search'),
-    path('dictionary/', views.dictionary, name='dictionary'),
+    path('', spa_app, name='home'),
+    path('all/', spa_app, name='slip_list'),
+    path('slip/<int:pk>/', spa_app, name='slip_detail'),
+    path('character/<int:pk>/', spa_app, name='character_detail'),
+    path('chapters/', spa_app, name='chapter_list'),
+    path('glyph/<int:pk>/', spa_app, name='glyph_detail'),
+    path('collections/', spa_app, name='collection_list'),
+    path('collection/<int:pk>/', spa_app, name='collection_detail'),
+    path('search/', spa_app, name='search'),
+    path('dictionary/', spa_app, name='dictionary'),
+    path('random/', views.random_slip, name='random_slip'),
+    path('api/csrf/', csrf_token, name='api-csrf'),
+    path('api/home/', HomeSummaryView.as_view(), name='api-home'),
+    path('api/', include(router.urls)),    # 所有 API 都在 /api/ 下
+    re_path(r'^(?!(?:admin|api|media|static)(?:/|$)).*$', spa_app),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

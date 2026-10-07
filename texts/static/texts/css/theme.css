@@ -1,4 +1,3 @@
-/* Theme: Modern Classic — responsive, readable, warm tones */
 :root {
   --bg: #f6f2ea;
   --card: #fffdf9;
@@ -23,7 +22,7 @@ body {
 
 body {
   margin: 0;
-  font-family: "Noto Serif SC", "KaiTi", Georgia, serif;
+  font-family:"KaiTi", "Noto Serif SC", Georgia, serif;
   background: var(--bg);
   color: var(--dark);
   -webkit-font-smoothing: antialiased;

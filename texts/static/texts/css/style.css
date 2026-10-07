@@ -1,7 +1,3 @@
-/* ============================================================
-   Theme: 现代古典 — 统一、温润、可读性优先
-   ============================================================ */
-
 :root {
   --bg: #f5f0e8;
   --card: #fffcf8;
@@ -12,7 +8,7 @@
   --radius: 12px;
   --max-width: 980px;
   --content-gap: 18px;
-  --font-serif: "Noto Serif SC", "KaiTi", "楷体", "STKaiti", serif;
+  --font-serif: "KaiTi", "楷体", "STKaiti", "Noto Serif SC", serif;
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 

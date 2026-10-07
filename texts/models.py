@@ -166,7 +166,7 @@ class Annotation(models.Model):
 
 class Character(models.Model):
     """独立存储每个字的信息"""
-    glyph = models.CharField(max_length=10, unique=True, verbose_name="释读")
+    glyph = models.CharField(max_length=10, verbose_name="释读")
     
     # 上古音信息
     initial = models.CharField(max_length=20, blank=True, verbose_name="声母")
@@ -192,6 +192,7 @@ class Character(models.Model):
         return ' '.join(parts) if parts else ''
 
     class Meta:
+        unique_together = ['glyph', 'pronunciation']
         ordering = ['glyph']
         verbose_name = "字"
         verbose_name_plural = "字"

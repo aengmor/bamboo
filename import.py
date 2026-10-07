@@ -1,15 +1,15 @@
 import argparse
 import os
-from unittest import skip
+from django.db import transaction
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bamboo.settings')
 import django
 
 django.setup()
 
-from texts.models import Chapter, SlipText, SlipChar, Character
+from texts.models import Collection, Chapter, SlipText, SlipChar, Character
 
-SKIP_CHARS = set('，。？！、；：《》 …“‘”’（）【】『』〔〕〈〉﹁﹂﹃﹄︵︶︹︺︿﹀︽︾﹁﹂︿﹀︽︾')  
+SKIP_CHARS = set('，。？！、；：《》" …“‘”’（）【】『』〔〕〈〉﹁﹂﹃﹄︵︶︹︺︿﹀︽︾﹁﹂︿﹀︽︾')
 # 需要跳过的标点符号
 
 def parse_import_file(path):
@@ -17,12 +17,22 @@ def parse_import_file(path):
     with open(path, 'r', encoding='utf-8') as fh:
         lines = [line.strip() for line in fh if line.strip()]
 
+    collection_name = None
     chapter_title = None
     records = []
 
     for line in lines:
-        if line.lower().startswith('###'):
-            chapter_title = line.split(' ', 1)[1].strip()
+        if line.lower().startswith('chapter:'):
+            chapter_title = line.split(':', 1)[1].strip()
+            continue
+        if line.startswith('###'):
+            chapter_title = line.lstrip('#').strip()
+            continue
+        if line.startswith('##'):
+            collection_name = line.lstrip('#').strip()
+            chapter_title = None
+            if not collection_name:
+                raise ValueError('批次标题不能为空')
             continue
         if line.startswith('//'):
             continue
@@ -38,26 +48,45 @@ def parse_import_file(path):
         else:
             raise ValueError(f'这一行格式不对：{line}。请写成“简号|内容”或“简号:内容”')
 
+        if not chapter_title:
+            raise ValueError('请先提供篇目标题，例如：chapter: 篇名')
         if slip_id[0].isdigit():
             slip_id = chapter_title + slip_id
         
-        records.append((chapter_title.strip(), slip_id.strip(), content.strip()))
+        records.append((collection_name, chapter_title.strip(), slip_id.strip(), content.strip()))
 
     if not chapter_title:
-        raise ValueError('文件里必须先写一行：chapter: 篇名')
+        raise ValueError('文件里必须先写篇目标题，例如：### 篇名 或 chapter: 篇名')
     if not records:
         raise ValueError('文件里没有找到任何简号和内容')
 
     return records
 
 
+@transaction.atomic
 def import_records(records):
     created_slips = 0
     created_chars = 0
     order = 1
 
-    for chapter_title, slip_id, content in records:
-        chapter, _ = Chapter.objects.get_or_create(title=chapter_title)
+    for record in records:
+        if len(record) == 3:
+            collection_name = None
+            chapter_title, slip_id, content = record
+        else:
+            collection_name, chapter_title, slip_id, content = record
+
+        collection = None
+        if collection_name:
+            collection, _ = Collection.objects.get_or_create(name=collection_name)
+
+        chapter, _ = Chapter.objects.get_or_create(
+            title=chapter_title,
+            defaults={'collection': collection},
+        )
+        if collection and chapter.collection_id != collection.pk:
+            chapter.collection = collection
+            chapter.save(update_fields=['collection'])
 
         slip, created = SlipText.objects.get_or_create(
             slip_id=slip_id,
@@ -79,7 +108,7 @@ def import_records(records):
         for char in content:
             if char in SKIP_CHARS or char == ' ':
                 continue
-            char_obj, _ = Character.objects.get_or_create(glyph=char)
+            char_obj, _ = Character.objects.get_or_create(glyph=char, pronunciation='')
             SlipChar.objects.create(slip=slip, character=char_obj, position=position)
             position += 1
             created_chars += 1

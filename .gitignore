@@ -1,4 +1,5 @@
 /static/
+/texts/static/texts/vue/
 db.sqlite3
 cloudflared
 /texts/__pycache__/

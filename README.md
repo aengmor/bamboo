@@ -19,9 +19,60 @@
 都是皮毛级的
 - **后端**：Python 3.14，Django 6.0.7
 - **数据库**：Django自带的SQLite
-- **前端**：基础HTML与CSS， Django模板引擎
+- **前端**：Vue 3、Vue Router、Vite；复用 `texts/static/texts/css/style.css`
+- **API**：Django REST Framework
 - **排序**：django-admin-sortable2（后台拖拽排序）
 - **版本管理**：Git + GitHub
+
+## ⚙️ 运行配置
+前后端开发需分别启动 Django 和 Vite。Django 提供 `/api/`、`/admin/` 和媒体文件，Vite 将 API、媒体和静态资源请求代理给 Django。
+
+PowerShell 终端一（在 Python 虚拟环境中）：
+
+```powershell
+cd d:\program\web\bamboo
+python manage.py runserver 8000
+```
+
+PowerShell 终端二：
+
+```powershell
+cd d:\program\web\frontend
+npm ci
+npm run dev
+```
+
+访问 Vite 输出的地址（默认 `http://localhost:5173`）。生产构建输出至 `texts/static/texts/vue/`，原有访客 URL 由 Django 返回 Vue 应用入口。
+
+生产环境必须设置 `DJANGO_DEBUG=False`、`DJANGO_SECRET_KEY`、`DJANGO_ALLOWED_HOSTS` 和数据库连接变量；通过 `DB_ENGINE`、`DB_NAME`、`DB_USER`、`DB_PASSWORD`、`DB_HOST` 和 `DB_PORT` 配置 PostgreSQL。静态文件通过 WhiteNoise 服务；媒体文件仍需由 PythonAnywhere 的静态文件映射或生产文件服务器提供。
+
+发布到 PythonAnywhere 前，在本机或构建环境运行：
+
+```powershell
+npm --prefix ..\frontend ci
+npm --prefix ..\frontend run build
+python manage.py collectstatic --noinput
+```
+
+PythonAnywhere 的 Web 配置中将 URL `/static/` 映射到 `STATIC_ROOT`。新增静态文件或再次构建 Vue 后，需重新运行 `collectstatic`。
+
+Docker 构建上下文需同时包含同级的 `bamboo/` 和 `frontend/` 目录；从 `web/` 目录运行：
+
+```powershell
+docker build -f bamboo/Dockerfile -t bamboo .
+```
+
+镜像构建时会编译 Vue 并收集 Django 静态文件；运行容器时仍需传入生产密钥、允许的主机和数据库配置。
+
+生产密钥可用 `python -c "import secrets; print(secrets.token_urlsafe(50))"` 生成，并单独配置到运行环境中，不要提交到版本库。
+
+若本地需要连接 PostgreSQL，可在 PowerShell 中设置：
+
+```powershell
+$env:DJANGO_DEBUG = "True"
+$env:DB_ENGINE = "django.db.backends.postgresql"
+python manage.py runserver
+```
 
 ## 📁 数据模型
 整个数据结构大概是这样的：
@@ -101,29 +152,28 @@ erDiagram
 现在项目已经支持一个更容易上手的导入方式。
 
 ### 1. 准备一个文本文件
-把你的数据写成下面这种格式：
+使用下述格式：
 
 ```text
-chapter: 曹沫之阵
-简1 | 甲乙丙丁
-简2 | 戊己庚辛
+## 上博简
+### 曹沫之阵
+1:甲乙丙丁
+2:戊己庚辛
+
+## 郭店简
+### 老子甲
+1:甲乙丙丁
 ```
 
 把文件保存为例如 `sample_import.txt`，放到项目根目录。
 
 ### 2. 运行导入命令
 ```powershell
-py import_simple.py --file sample_import.txt
-```
-
-如果你想重置这个篇目下旧数据再导入：
-
-```powershell
-py import_simple.py --file sample_import.txt --reset
+py import.py --file sample_import.txt
 ```
 
 ### 3. 说明
-- `chapter:` 后面写篇名
+- `##` 后面写批次名（如上博简、郭店简），`###` 后面写篇名；也可以用 `chapter:` 写篇名
 - 每行用 `|` 分隔：`简号|内容`
 - 脚本会自动创建篇目、竹简、字和字位关系
 - 默认会跳过标点，方便做基础导入

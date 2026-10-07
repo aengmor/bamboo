@@ -35,6 +35,7 @@ for idx, row in df.iterrows():
     # 如果字段不存在，用 get_or_create
     obj, created_flag = Character.objects.get_or_create(
         glyph=glyph,
+        pronunciation=data['pronunciation'],
         defaults=data
     )
     if created_flag:

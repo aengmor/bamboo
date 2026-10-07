@@ -1,6 +1,6 @@
 {% extends 'texts/base.html' %}
 {% load text_extras %}
-{# load markdownx #}
+{% load markdownify %}
 {% block title %}
 {% if selected_chapter %}
 {{ selected_chapter.title }} · 释文
@@ -22,7 +22,7 @@
 <h1 class="chapter-subtitle">📜 {{ selected_chapter.title }}</h1>
 {% if selected_chapter.description %}
 <div class="chapter-annotation">
-    {{ selected_chapter.description|linebreaks }}
+    {{ selected_chapter.description|linebreaks|markdownify }}
 </div>
 {% endif %}
 {% else %}

@@ -27,3 +27,11 @@ typing_extensions==4.16.0
 tzdata==2026.3
 urllib3==2.7.0
 webencodings==0.5.1
+
+django-filter==26.1
+djangorestframework==3.18.1
+django-cors-headers==4.9.0
+zhconv==1.4.3
+psycopg[binary]==3.3.6
+waitress==3.0.2
+whitenoise==6.12.0

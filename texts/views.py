@@ -1,11 +1,16 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from django.db.models import Count, Q, Prefetch
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+import random
 from urllib.parse import urlencode
-from .models import Collection, SlipText, Chapter, Character, SlipChar, Annotation, ChapterComment, Glyph
-from .forms import AnnotationForm, ChapterCommentForm, GlyphAnnotationForm, CollectionCommentForm, SearchForm
+
 import zhconv
+from django.contrib import messages
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Count, Prefetch, Q
+from django.shortcuts import render, get_object_or_404, redirect
+
+from .forms import AnnotationForm, ChapterCommentForm, GlyphAnnotationForm, CollectionCommentForm, SearchForm
+from .models import Collection, Chapter, Character, Glyph, SlipChar, SlipText, Annotation, ChapterComment
+
+
 # 这是应用的视图文件，负责把数据库中的数据读取出来，传给前端模板显示。
 # 所有函数都返回一个 render(request, template, context) 用于渲染页面。
 
@@ -227,11 +232,6 @@ def character_detail(request, pk):
         )
     ).order_by('slip__chapter__title', 'slip__slip_id', 'position')
 
-    # 为每个 SlipChar 预加载对应的字形图片（如果存在）
-    for sc in occurrences_qs:
-        # 查询该字在该简该位置的字形图片
-        sc.glyph_obj = char.glyphs.filter(slip=sc.slip, position=sc.position).first()
-
     # 分页处理出现位置，避免单页过长
     page = request.GET.get('page', 1)
     occurrence_paginator = Paginator(occurrences_qs, 20)
@@ -243,6 +243,16 @@ def character_detail(request, pk):
         occurrence_page = occurrence_paginator.page(occurrence_paginator.num_pages)
 
     occurrences = list(occurrence_page.object_list)
+
+    page_slip_ids = {occurrence.slip_id for occurrence in occurrences}
+    page_positions = {occurrence.position for occurrence in occurrences}
+    glyphs = char.glyphs.filter(
+        slip_id__in=page_slip_ids,
+        position__in=page_positions,
+    ).select_related('slip')
+    glyph_map = {(glyph.slip_id, glyph.position): glyph for glyph in glyphs}
+    for occurrence in occurrences:
+        occurrence.glyph_obj = glyph_map.get((occurrence.slip_id, occurrence.position))
     
     chapter_dict = {}
     # total_count 直接使用 queryset.count()，避免重复计算
@@ -273,10 +283,6 @@ def character_detail(request, pk):
             sc.before = ''.join([c.character.glyph for c in before])
             after = char_list[idx+1:min(len(char_list), idx+11)]
             sc.after = ''.join([c.character.glyph for c in after])
-        
-        # sc.context = f"{context_before}【{char.glyph}】{context_after}"
-        # sc.before = context_before
-        # sc.after = context_after
         
         chapter_dict[chapter_title].append(sc)
     
@@ -334,9 +340,7 @@ def glyph_detail(request, pk):
         glyph.before = ''.join([c.character.glyph for c in before])
         after = char_list[idx+1:min(len(char_list), idx+11)]
         glyph.after = ''.join([c.character.glyph for c in after])
-            
-        # glyph.context= f"{context_before}【{glyph.character.glyph}】{context_after}"
-
+ 
     if request.method == 'POST':
         form = GlyphAnnotationForm(request.POST)
         if form.is_valid():
@@ -367,7 +371,13 @@ def collection_list(request):
 
 def collection_detail(request, pk):
     collection = get_object_or_404(Collection, pk=pk)
-    chapters = collection.chapters.all().order_by('title')
+    chapters = collection.chapters.prefetch_related(
+        Prefetch(
+            'slip_texts',
+            queryset=SlipText.objects.order_by('order', 'slip_id'),
+            to_attr='ordered_slips',
+        )
+    ).order_by('title')
     
     # 评论处理
     if request.method == 'POST':
@@ -395,10 +405,9 @@ def collection_detail(request, pk):
     # 为每个篇章预加载竹简
     chapter_data = []
     for ch in page_obj.object_list:
-        slips = ch.slip_texts.all().order_by('order', 'slip_id')
         chapter_data.append({
             'chapter': ch,
-            'slips': slips,
+            'slips': ch.ordered_slips,
         })
 
     comments = collection.comments.filter(is_approved=True).order_by('-created_at')
@@ -512,3 +521,12 @@ def dictionary(request):
         'search_type': search_type,
     }
     return render(request, 'texts/dictionary.html', context)
+
+def random_slip(request):
+    slip_count = SlipText.objects.count()
+    if not slip_count:
+        return redirect('home')
+    random_id = SlipText.objects.order_by('pk').values_list('pk', flat=True)[
+        random.randrange(slip_count)
+    ]
+    return redirect('slip_detail', pk=random_id)
