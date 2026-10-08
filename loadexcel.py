@@ -6,26 +6,26 @@ django.setup()
 
 from texts.models import Character
 
-# 1. 读取 Excel 文件
+# 读 Excel 文件
 file_path = 'oldchinese.xlsx'  # 放在项目根目录
 df = pd.read_excel(file_path, sheet_name="字典表")
 
-# 2. 去除空行
+# 去空行
 df = df.dropna(subset=['字'])
 
-# 3. 统计
+# 统计
 total = len(df)
 created = 0
 updated = 0
 
 for idx, row in df.iterrows():
-    glyph = str(row['字']).strip()
-    if not glyph:
+    reading = str(row['字']).strip()
+    if not reading:
         continue
     
     # 准备数据
     data = {
-        'glyph': glyph,
+        'reading': reading,
         'pronunciation': str(row['音']) if pd.notna(row['音']) else '',
         'pronunciation_ascii': str(row['拼音']) if pd.notna(row['拼音']) else '',
         'meaning': str(row['釋義']) if pd.notna(row['釋義']) else '',
@@ -34,7 +34,7 @@ for idx, row in df.iterrows():
     
     # 如果字段不存在，用 get_or_create
     obj, created_flag = Character.objects.get_or_create(
-        glyph=glyph,
+        reading=reading,
         pronunciation=data['pronunciation'],
         defaults=data
     )
@@ -43,7 +43,7 @@ for idx, row in df.iterrows():
     else:
         # 如果已存在，更新字段
         for key, value in data.items():
-            if value and key != 'glyph':
+            if value and key != 'reading':
                 setattr(obj, key, value)
         obj.save()
         updated += 1

@@ -25,7 +25,7 @@ from .models import (
     Glyph,
     GlyphAnnotation,
     SlipChar,
-    SlipText,
+    Slip,
 )
 from .serializers import (
     AnnotationReadSerializer,
@@ -61,10 +61,10 @@ class HomeSummaryView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        recent_slips = SlipText.objects.select_related('chapter').order_by('-id')[:5]
+        recent_slips = Slip.objects.select_related('chapter').order_by('-id')[:5]
         return Response({
             'total_chapters': Chapter.objects.count(),
-            'total_slips': SlipText.objects.count(),
+            'total_slips': Slip.objects.count(),
             'total_characters': Character.objects.count(),
             'total_annotations': Annotation.objects.filter(is_approved=True).count(),
             'recent_slips': SlipSummarySerializer(recent_slips, many=True, context={'request': request}).data,
@@ -88,22 +88,22 @@ class PublicReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SlipTextViewSet(PublicReadOnlyViewSet):
-    queryset = SlipText.objects.all()
+    queryset = Slip.objects.all()
     serializer_class = SlipSummarySerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['chapter', 'slip_id']
     submission_actions = frozenset({'annotations'})
 
     def get_queryset(self):
-        queryset = SlipText.objects.select_related('chapter', 'chapter__collection')
+        queryset = Slip.objects.select_related('chapter', 'chapter__collection')
         if self.action == 'retrieve':
             queryset = queryset.prefetch_related(
                 Prefetch(
                     'slipchars',
-                    queryset=SlipChar.objects.select_related('character').order_by('position'),
+                    queryset=SlipChar.objects.select_related('character', 'glyph').order_by('position'),
                     to_attr='api_slipchars',
                 ),
-                Prefetch('glyphs', queryset=Glyph.objects.select_related('character'), to_attr='api_glyphs'),
+                # Prefetch('glyphs', queryset=Glyph.objects.select_related('character'), to_attr='api_glyphs'),
             )
         chapter_id = self.request.query_params.get('chapter')
         if chapter_id and chapter_id.isdigit():
@@ -159,10 +159,10 @@ class SlipTextViewSet(PublicReadOnlyViewSet):
 
     @action(detail=False, methods=['get'])
     def random(self, request):
-        slip_count = SlipText.objects.count()
+        slip_count = Slip.objects.count()
         if not slip_count:
             return Response({'detail': '暂无竹简数据。'}, status=status.HTTP_404_NOT_FOUND)
-        slip_id = SlipText.objects.order_by('pk').values_list('pk', flat=True)[random.randrange(slip_count)]
+        slip_id = Slip.objects.order_by('pk').values_list('pk', flat=True)[random.randrange(slip_count)]
         return Response({'id': slip_id, 'url': f'/slip/{slip_id}/'})
 
 
@@ -177,7 +177,7 @@ class ChapterViewSet(PublicReadOnlyViewSet):
             queryset = queryset.prefetch_related(
                 Prefetch(
                     'slip_texts',
-                    queryset=SlipText.objects.select_related('chapter', 'chapter__collection').order_by(
+                    queryset=Slip.objects.select_related('chapter', 'chapter__collection').order_by(
                         'order', 'slip_id', 'pk'
                     ),
                     to_attr='api_slips',
@@ -313,8 +313,8 @@ class CharacterViewSet(PublicReadOnlyViewSet):
             if index < 0:
                 before = after = ''
             else:
-                before = ''.join(item.character.glyph for item in chars[max(0, index - 10):index])
-                after = ''.join(item.character.glyph for item in chars[index + 1:index + 11])
+                before = ''.join(item.character.reading for item in chars[max(0, index - 10):index])
+                after = ''.join(item.character.reading for item in chars[index + 1:index + 11])
             glyph = next(
                 (item for item in getattr(occurrence.slip, 'api_glyphs', [])
                  if item.position == occurrence.position),

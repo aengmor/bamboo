@@ -45,19 +45,19 @@
     <div style="display: inline-flex; flex-direction: column; align-items: center; min-width: 42px; cursor: pointer;">
         {% if sc.glyph_obj and sc.glyph_obj.image %}
         <a href="{% url 'glyph_detail' pk=sc.glyph_obj.pk %}">
-            <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.glyph }}" class="char-image">
+            <img src="{{ sc.glyph_obj.image.url }}" alt="{{ sc.character.reading }}" class="char-image">
         </a>
         {% else %}
         <span class="char-placeholder"></span>
         {% endif %}
         <a href="javascript:void(0)" class="char-link-trigger" data-pk="{{ sc.character.pk }}"
-            data-glyph="{{ sc.character.glyph }}" data-initial="{{ sc.character.initial|default:'' }}"
+            data-glyph="{{ sc.character.reading }}" data-initial="{{ sc.character.initial|default:'' }}"
             data-rhyme="{{ sc.character.rhyme|default:'' }}"
             data-pronunciation="{{ sc.character.pronunciation|default:'' }}"
             data-meaning="{{ sc.character.meaning|default:'' }}" data-position="{{ sc.position }}"
             style="text-decoration: none; color: inherit;">
             <ruby class="char-ruby">
-                {{ sc.character.glyph }}
+                {{ sc.character.reading|default:"□" }}
                 <rt>{{ sc.character.pronunciation|default:"?" }}</rt>
             </ruby>
         </a>
@@ -119,7 +119,7 @@
         </div>
         {% empty %}
         <div class="jishi-placeholder">
-            📭 暂无集释。欢迎学者提交您的见解。
+            📭 暂无集释。欢迎学者提交见解。
         </div>
         {% endfor %}
     </div>

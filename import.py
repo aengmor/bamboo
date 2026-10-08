@@ -7,7 +7,7 @@ import django
 
 django.setup()
 
-from texts.models import Collection, Chapter, SlipText, SlipChar, Character
+from texts.models import Collection, Chapter, Slip, SlipChar, Character
 
 SKIP_CHARS = set('，。？！、；：《》" …“‘”’（）【】『』〔〕〈〉﹁﹂﹃﹄︵︶︹︺︿﹀︽︾﹁﹂︿﹀︽︾')
 # 需要跳过的标点符号
@@ -88,7 +88,7 @@ def import_records(records):
             chapter.collection = collection
             chapter.save(update_fields=['collection'])
 
-        slip, created = SlipText.objects.get_or_create(
+        slip, created = Slip.objects.get_or_create(
             slip_id=slip_id,
             defaults={'chapter': chapter, 'content': content, 'order': order}
         )
@@ -108,7 +108,7 @@ def import_records(records):
         for char in content:
             if char in SKIP_CHARS or char == ' ':
                 continue
-            char_obj, _ = Character.objects.get_or_create(glyph=char, pronunciation='')
+            char_obj, _ = Character.objects.get_or_create(reading=char, pronunciation='')
             SlipChar.objects.create(slip=slip, character=char_obj, position=position)
             position += 1
             created_chars += 1

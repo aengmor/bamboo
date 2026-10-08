@@ -8,7 +8,7 @@ from django.db.models import Count, Prefetch, Q
 from django.shortcuts import render, get_object_or_404, redirect
 
 from .forms import AnnotationForm, ChapterCommentForm, GlyphAnnotationForm, CollectionCommentForm, SearchForm
-from .models import Collection, Chapter, Character, Glyph, SlipChar, SlipText, Annotation, ChapterComment
+from .models import Collection, Chapter, Character, Glyph, SlipChar, Slip, Annotation, ChapterComment
 
 
 # 这是应用的视图文件，负责把数据库中的数据读取出来，传给前端模板显示。
@@ -18,12 +18,12 @@ def home(request):
     """首页"""
     # 统计信息
     total_chapters = Chapter.objects.count()
-    total_slips = SlipText.objects.count()
+    total_slips = Slip.objects.count()
     total_chars = Character.objects.count()
     total_annotations = Annotation.objects.filter(is_approved=True).count()
     
     # 最近更新的竹简（取最近添加的5条），预取篇目避免模板中 N+1 查询
-    recent_slips = SlipText.objects.select_related('chapter').order_by('-id')[:5]
+    recent_slips = Slip.objects.select_related('chapter').order_by('-id')[:5]
     
     context = {
         'total_chapters': total_chapters,
@@ -70,7 +70,7 @@ def slip_list(request):
     else:
         form = ChapterCommentForm()
 
-    slips_queryset = SlipText.objects.select_related('chapter')
+    slips_queryset = Slip.objects.select_related('chapter')
     if query:
         slips_queryset = slips_queryset.filter(
             Q(content__icontains=query) | Q(slip_id__icontains=query)
@@ -151,7 +151,7 @@ def slip_list(request):
     return render(request, 'texts/slip_list.html', context)
 
 def slip_detail(request, pk):
-    slip = get_object_or_404(SlipText.objects.select_related('chapter'), pk=pk)
+    slip = get_object_or_404(Slip.objects.select_related('chapter'), pk=pk)
 
     # 获取该简上的所有字，按位置排序，并批量加载关联字形，减少 N+1 查询。
     chars = slip.slipchars.select_related('character').order_by('position')
@@ -280,9 +280,9 @@ def character_detail(request, pk):
         context_after = ''
         if idx != -1:
             before = char_list[max(0, idx-10):idx]
-            sc.before = ''.join([c.character.glyph for c in before])
+            sc.before = ''.join([c.character.reading for c in before])
             after = char_list[idx+1:min(len(char_list), idx+11)]
-            sc.after = ''.join([c.character.glyph for c in after])
+            sc.after = ''.join([c.character.reading for c in after])
         
         chapter_dict[chapter_title].append(sc)
     
@@ -337,15 +337,15 @@ def glyph_detail(request, pk):
     context_after = ''
     if idx != -1:
         before = char_list[max(0, idx-10):idx]
-        glyph.before = ''.join([c.character.glyph for c in before])
+        glyph.before = ''.join([c.character.reading for c in before])
         after = char_list[idx+1:min(len(char_list), idx+11)]
-        glyph.after = ''.join([c.character.glyph for c in after])
+        glyph.after = ''.join([c.character.reading for c in after])
  
     if request.method == 'POST':
         form = GlyphAnnotationForm(request.POST)
         if form.is_valid():
             annotation = form.save(commit=False)
-            annotation.glyph = glyph
+            annotation.reading = glyph
             annotation.is_approved = False  # 默认待审核
             annotation.save()
             messages.success(request, '✅ 您的讨论已提交，等待审核后显示。')
@@ -374,7 +374,7 @@ def collection_detail(request, pk):
     chapters = collection.chapters.prefetch_related(
         Prefetch(
             'slip_texts',
-            queryset=SlipText.objects.order_by('order', 'slip_id'),
+            queryset=Slip.objects.order_by('order', 'slip_id'),
             to_attr='ordered_slips',
         )
     ).order_by('title')
@@ -425,7 +425,7 @@ def collection_detail(request, pk):
 
 def search_view(request):
     form = SearchForm(request.GET or None)
-    results = SlipText.objects.none()  # 空查询集
+    results = Slip.objects.none()  # 空查询集
     keyword = ''
     search_in = 'all'
 
@@ -436,7 +436,7 @@ def search_view(request):
         search_in = form.cleaned_data.get('search_in', 'all')
 
         # 基础查询：先限制到竹简
-        results = SlipText.objects.select_related('chapter').all()
+        results = Slip.objects.select_related('chapter').all()
 
         # 按批次筛选（通过 chapter 的关联）
         if collection:
@@ -488,7 +488,7 @@ def dictionary(request):
     except ValueError:
         per_page = 50
 
-    characters = Character.objects.all().order_by('glyph')
+    characters = Character.objects.all().order_by('reading')
     if query:
         if search_type == "meaning":
             characters = characters.filter(Q(meaning__icontains=query))
@@ -523,10 +523,10 @@ def dictionary(request):
     return render(request, 'texts/dictionary.html', context)
 
 def random_slip(request):
-    slip_count = SlipText.objects.count()
+    slip_count = Slip.objects.count()
     if not slip_count:
         return redirect('home')
-    random_id = SlipText.objects.order_by('pk').values_list('pk', flat=True)[
+    random_id = Slip.objects.order_by('pk').values_list('pk', flat=True)[
         random.randrange(slip_count)
     ]
     return redirect('slip_detail', pk=random_id)

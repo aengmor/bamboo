@@ -1,10 +1,20 @@
 from adminsortable2.admin import SortableAdminMixin
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import ChapterComment, Character, Collection, CollectionComment, SlipChar, SlipText, Chapter, Annotation, Glyph, GlyphAnnotation
+from .models import ChapterComment, Character, Collection, CollectionComment, SlipChar, Slip, Chapter, Annotation, Glyph, GlyphAnnotation
 
-@admin.register(SlipText)
-class SlipTextAdmin(SortableAdminMixin, admin.ModelAdmin):
+@admin.register(Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'order', 'get_chapter_count')
+    list_editable = ('order',)
+    search_fields = ('name',)
+
+    def get_chapter_count(self, obj):
+        return obj.chapters.count()
+    get_chapter_count.short_description = "篇数"
+
+@admin.register(Slip)
+class SlipAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display = ('order', 'chapter', 'slip_id', 'content_preview')
     list_filter = ('chapter',)
     sortable_by = ('order', 'slip_id')
@@ -22,12 +32,12 @@ class ChapterAdmin(admin.ModelAdmin):
 
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
-    list_display = ('glyph', 'initial', 'rhyme', 'pronunciation', 'ids')  # 显示哪些字段
-    search_fields = ('glyph',)  # 按字形搜索
+    list_display = ('reading', 'initial', 'rhyme', 'pronunciation', 'ids')  # 显示哪些字段
+    search_fields = ('reading',)  # 按字形搜索
     list_editable = ('initial', 'rhyme', 'pronunciation')  # 允许在列表页直接编辑音韵信息
     fieldsets = (
         ('基本信息', {
-            'fields': ('glyph', 'ids')
+            'fields': ('reading', 'ids')
         }),
         ('上古音信息', {
             'fields': ('initial', 'rhyme', 'pronunciation')
@@ -37,41 +47,18 @@ class CharacterAdmin(admin.ModelAdmin):
         })
     )
 
-@admin.register(Annotation)
-class AnnotationAdmin(admin.ModelAdmin):
-    list_display = ('slip', 'author', 'annotation_type', 'confidence', 'is_approved', 'created_at')
-    list_filter = ('annotation_type', 'is_approved', 'slip')
-    search_fields = ('author', 'content', 'evidence')
-    list_editable = ('is_approved', 'confidence')  # 可直接在列表页修改
-    readonly_fields = ('created_at',)  # 发布时间不可编辑
-    
-    fieldsets = (
-        ('基本信息', {
-            'fields': ('slip', 'annotation_type', 'title', 'author')
-        }),
-        ('集释内容', {
-            'fields': ('content', 'evidence')
-        }),
-        ('审核与评价', {
-            'fields': ('is_approved', 'confidence', 'likes')
-        }),
-        ('系统信息', {
-            'fields': ('created_at',)
-        }),
-    )
-
 @admin.register(SlipChar)
 class SlipCharAdmin(admin.ModelAdmin):
-    list_display = ('slip', 'character', 'position')
+    list_display = ('slip', 'character', 'position', 'glyph',)
     list_filter = ('slip',)
-    search_fields = ('slip__slip_id', 'character__glyph')
+    search_fields = ('slip__slip_id', 'character__reading',)
 
 @admin.register(Glyph)
 class GlyphAdmin(admin.ModelAdmin):
-    list_display = ('character', 'slip', 'position', 'image_preview')
-    list_filter = ('character', 'slip')
-    search_fields = ('character__glyph', 'slip__slip_id')
-    list_editable = ('position',)
+    list_display = ('image_preview',)
+    # list_filter = ('character', 'slip',)
+    # search_fields = ('character__glyph', 'slip__slip_id',)
+    # list_editable = ('position',)
 
     class Media:
         css = {
@@ -87,6 +74,7 @@ class GlyphAdmin(admin.ModelAdmin):
         return "无图片"
     image_preview.short_description = "预览"
 
+# 集释与评论
 @admin.register(GlyphAnnotation)
 class GlyphAnnotationAdmin(admin.ModelAdmin):
     list_display = ('glyph', 'author', 'annotation_type', 'is_approved', 'created_at')
@@ -105,15 +93,28 @@ class ChapterCommentAdmin(admin.ModelAdmin):
         return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
     content_preview.short_description = "评论预览"
 
-@admin.register(Collection)
-class CollectionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description', 'order', 'get_chapter_count')
-    list_editable = ('order',)
-    search_fields = ('name',)
+@admin.register(Annotation)
+class AnnotationAdmin(admin.ModelAdmin):
+    list_display = ('slip', 'author', 'annotation_type', 'confidence', 'is_approved', 'created_at')
+    list_filter = ('annotation_type', 'is_approved', 'slip')
+    search_fields = ('author', 'content', 'evidence')
+    list_editable = ('is_approved', 'confidence')  # 可直接在列表页修改
+    readonly_fields = ('created_at',)  # 发布时间不可编辑
 
-    def get_chapter_count(self, obj):
-        return obj.chapters.count()
-    get_chapter_count.short_description = "篇数"
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('slip', 'annotation_type', 'title', 'author')
+        }),
+        ('集释内容', {
+            'fields': ('content', 'evidence')
+        }),
+        ('审核与评价', {
+            'fields': ('is_approved', 'confidence', 'likes')
+        }),
+        ('系统信息', {
+            'fields': ('created_at',)
+        }),
+    )
 
 @admin.register(CollectionComment)
 class CollectionCommentAdmin(admin.ModelAdmin):

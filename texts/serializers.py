@@ -12,7 +12,7 @@ from .models import (
     Glyph,
     GlyphAnnotation,
     SlipChar,
-    SlipText,
+    Slip,
 )
 
 
@@ -64,7 +64,7 @@ class CharacterSummarySerializer(serializers.ModelSerializer):
         model = Character
         fields = [
             'id',
-            'glyph',
+            'reading',
             'initial',
             'rhyme',
             'pronunciation',
@@ -135,7 +135,7 @@ class SlipSummarySerializer(serializers.ModelSerializer):
     chapter = ChapterSummarySerializer(read_only=True)
 
     class Meta:
-        model = SlipText
+        model = Slip
         fields = ['id', 'slip_id', 'content', 'chapter', 'order', 'source', 'parallel_text', 'image']
 
 
@@ -222,6 +222,6 @@ class GlyphDetailSerializer(serializers.ModelSerializer):
         )
         if index < 0:
             return '', ''
-        before = ''.join(item.character.glyph for item in characters[max(0, index - 10):index])
-        after = ''.join(item.character.glyph for item in characters[index + 1:index + 11])
+        before = ''.join(item.character.reading for item in characters[max(0, index - 10):index])
+        after = ''.join(item.character.reading for item in characters[index + 1:index + 11])
         return before, after

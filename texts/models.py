@@ -1,6 +1,8 @@
 from django.db import models
 
+# 核心数据模型
 class Collection(models.Model):
+    """批次"""
     name = models.CharField(max_length=100, unique=True, verbose_name="名称")
     description = models.TextField(blank=True, verbose_name="简介")
     order = models.IntegerField(default=0, verbose_name="顺序")
@@ -17,7 +19,7 @@ class Collection(models.Model):
         return self.chapters.count()
     
 class Chapter(models.Model):
-    """篇目模型（如《曹沫之阵》、《民之父母》）"""
+    """篇目"""
     title = models.CharField(max_length=100, unique=True, verbose_name="篇名")
     description = models.TextField(blank=True, verbose_name="篇目说明")
     slip_order = models.JSONField(
@@ -43,8 +45,8 @@ class Chapter(models.Model):
         verbose_name = "篇目"
         verbose_name_plural = "篇目"
 
-class SlipText(models.Model):
-    """竹简释文模型"""
+class Slip(models.Model):
+    """竹简"""
     slip_id = models.CharField(max_length=50, verbose_name="简号")
     content = models.TextField(verbose_name="释文")
     chapter = models.ForeignKey('Chapter', on_delete=models.SET_NULL, related_name='slip_texts', null=True, verbose_name="篇目")
@@ -63,28 +65,10 @@ class SlipText(models.Model):
 
 class Glyph(models.Model):
     """字形"""
-    character = models.ForeignKey(
-        'Character',
-        on_delete=models.CASCADE,
-        related_name='glyphs',
-        verbose_name="所属字"
-    )
-    # 关联到哪支简（用于精确定位该字形出现的上下文）
-    slip = models.ForeignKey(
-        'SlipText',
-        on_delete=models.CASCADE,
-        related_name='glyphs',
-        verbose_name="所在竹简"
-    )
     # 字形图片
     image = models.ImageField(
         upload_to='glyphs/%Y/%m/',
         verbose_name="字形图片"
-    )
-    # 可选：该字在竹简上的位置（便于快速定位）
-    position = models.PositiveIntegerField(
-        default=0,
-        verbose_name="在简上的位置"
     )
     # 图片来源说明
     source = models.CharField(
@@ -99,74 +83,15 @@ class Glyph(models.Model):
     )
 
     class Meta:
-        ordering = ['slip', 'position']
-        # 确保同一字在同一简上不会重复添加同一位置
-        unique_together = ['character', 'slip', 'position']
         verbose_name = "字形"
         verbose_name_plural = "字形"
 
     def __str__(self):
-        return f"{self.character.glyph} · {self.slip.slip_id} · 位置{self.position}"
-
-class Annotation(models.Model):
-    """ 集释模型：学者对竹简释文的评论、意见、证据等 """
-    # 定义集释类型（下拉选择框）
-    TYPE_CHOICES = [
-        ('lishi', '隶定意见'),
-        ('shiyi', '释义意见'),
-        ('yinyun', '音韵证据'),
-        ('cixian', '古文献辞例'),
-        ('bianlian', '编联意见'),
-        ('zonghe', '综合意见'),
-        ('qita', '其他'),
-    ]
-    
-    # 关联到哪支简
-    slip = models.ForeignKey('SlipText', on_delete=models.CASCADE, related_name='annotations', verbose_name="所属竹简")
-    
-    # 集释类型（学者可标记自己的意见属于哪一类）
-    annotation_type = models.CharField(max_length=20, choices=TYPE_CHOICES, verbose_name="集释类型")
-    
-    # 标题（可选，用于概括）
-    title = models.CharField(max_length=200, blank=True, verbose_name="标题")
-    
-    # 集释正文（核心内容）
-    content = models.TextField(verbose_name="集释内容")
-    
-    # 证据引用（学者列出的文献证据）
-    evidence = models.TextField(blank=True, verbose_name="证据引用", help_text="所引用的音韵、古文字、辞例等证据")
-    
-    # 评论人（暂时用字符串，以后可改为外键 User）
-    author = models.CharField(max_length=100, verbose_name="评论人")
-    
-    # 是否已审核（管理员确认后，可标记为“已审核”）
-    is_approved = models.BooleanField(default=False, verbose_name="已审核")
-    
-    # 可靠度（1-5星，可由管理员或社区投票决定）
-    confidence = models.IntegerField(default=0, verbose_name="可靠度", help_text="1-5，数值越高越可靠")
-    
-    # 发布时间
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="发布时间")
-    
-    # 点赞数（预留字段，未来实现）
-    likes = models.IntegerField(default=0, verbose_name="点赞数")
-    
-    class Meta:
-        ordering = ['-created_at']  # 最新评论在前
-        verbose_name = "集释"
-        verbose_name_plural = "集释"
-    
-    def __str__(self):
-        return f"{self.slip.slip_id} · {self.author} · {self.get_annotation_type_display()}"
-    
-    def content_preview(self):
-        """后台列表预览用"""
-        return self.content[:30] + '...' if len(self.content) > 30 else self.content
-    content_preview.short_description = '集释预览'
+        return f"{self.character.reading} · {self.slip.slip_id} · 位置{self.position}"
 
 class Character(models.Model):
-    """独立存储每个字的信息"""
-    glyph = models.CharField(max_length=10, verbose_name="释读")
+    """字"""
+    reading = models.CharField(max_length=10, verbose_name="释读")
     
     # 上古音信息
     initial = models.CharField(max_length=20, blank=True, verbose_name="声母")
@@ -185,22 +110,23 @@ class Character(models.Model):
     notes = models.TextField(blank=True, verbose_name="备注")
     
     def __str__(self):
-        return self.glyph
+        return self.reading
 
     def get_phonetic(self):
         parts = [part for part in (self.initial, self.rhyme, self.pronunciation) if part]
         return ' '.join(parts) if parts else ''
 
     class Meta:
-        unique_together = ['glyph', 'pronunciation']
-        ordering = ['glyph']
+        unique_together = ['reading', 'pronunciation']
+        ordering = ['reading']
         verbose_name = "字"
         verbose_name_plural = "字"
 
 class SlipChar(models.Model):
-    """竹简上的字——关联竹简和字，并记录位置"""
-    slip = models.ForeignKey('SlipText', on_delete=models.CASCADE, related_name='slipchars', verbose_name="竹简")
+    """竹简上的字关联表——关联竹简、字、字形，并记录位置"""
+    slip = models.ForeignKey(Slip, on_delete=models.CASCADE, related_name='slipchars', verbose_name="竹简")
     character = models.ForeignKey(Character, on_delete=models.CASCADE, verbose_name="字")
+    glyph = models.ForeignKey(Glyph, on_delete=models.CASCADE, blank=True, verbose_name="字形")
     position = models.IntegerField(default=0, verbose_name="位置")  # 第几个字
     # 字状态
     status = models.CharField(
@@ -212,10 +138,71 @@ class SlipChar(models.Model):
     )
 
     class Meta:
-        ordering = ['position']
+        ordering = ['slip', 'position']
+        # 确保同一字在同一简上不会重复添加同一位置
+        unique_together = ['character', 'slip', 'position']
     
     def __str__(self):
-        return f"{self.slip.slip_id} · {self.position} · {self.character.glyph}"
+        return f"{self.slip.slip_id} · {self.position} · {self.character.reading}"
+
+
+# 评论与集释模型
+class Annotation(models.Model):
+    """ 集释模型：学者对竹简释文的评论、意见、证据等 """
+    # 定义集释类型（下拉选择框）
+    TYPE_CHOICES = [
+        ('lishi', '隶定意见'),
+        ('shiyi', '释义意见'),
+        ('yinyun', '音韵证据'),
+        ('cixian', '古文献辞例'),
+        ('bianlian', '编联意见'),
+        ('zonghe', '综合意见'),
+        ('qita', '其他'),
+    ]
+
+    # 关联到哪支简
+    slip = models.ForeignKey(Slip, on_delete=models.CASCADE, related_name='annotations', verbose_name="所属竹简")
+
+    # 集释类型（学者可标记自己的意见属于哪一类）
+    annotation_type = models.CharField(max_length=20, choices=TYPE_CHOICES, verbose_name="集释类型")
+
+    # 标题（可选，用于概括）
+    title = models.CharField(max_length=200, blank=True, verbose_name="标题")
+
+    # 集释正文（核心内容）
+    content = models.TextField(verbose_name="集释内容")
+
+    # 证据引用（学者列出的文献证据）
+    evidence = models.TextField(blank=True, verbose_name="证据引用", help_text="所引用的音韵、古文字、辞例等证据")
+
+    # 评论人（暂时用字符串，以后可改为外键 User）
+    author = models.CharField(max_length=100, verbose_name="评论人")
+
+    # 是否已审核（管理员确认后，可标记为“已审核”）
+    is_approved = models.BooleanField(default=False, verbose_name="已审核")
+
+    # 可靠度（1-5星，可由管理员或社区投票决定）
+    confidence = models.IntegerField(default=0, verbose_name="可靠度", help_text="1-5，数值越高越可靠")
+
+    # 发布时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="发布时间")
+
+    # 点赞数（预留字段，未来实现）
+    likes = models.IntegerField(default=0, verbose_name="点赞数")
+
+    class Meta:
+        ordering = ['-created_at']  # 最新评论在前
+        verbose_name = "集释"
+        verbose_name_plural = "集释"
+
+    def __str__(self):
+        return f"{self.slip.slip_id} · {self.author} · {self.get_annotation_type_display()}"
+
+    def content_preview(self):
+        """后台列表预览用"""
+        return self.content[:30] + '...' if len(self.content) > 30 else self.content
+
+    content_preview.short_description = '集释预览'
 
 class GlyphAnnotation(models.Model):
     """字形集释"""
@@ -226,7 +213,7 @@ class GlyphAnnotation(models.Model):
         ('zonghe', '综合意见'),
         ('qita', '其他'),
     ]
-    
+
     glyph = models.ForeignKey(Glyph, on_delete=models.CASCADE, related_name='annotations', verbose_name="字形")
     annotation_type = models.CharField(max_length=20, choices=TYPE_CHOICES, verbose_name="类型")
     title = models.CharField(max_length=200, blank=True, verbose_name="标题")
@@ -237,10 +224,10 @@ class GlyphAnnotation(models.Model):
     is_approved = models.BooleanField(default=False, verbose_name="已审核")
     confidence = models.IntegerField(default=0, verbose_name="可靠度", help_text="1-5")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="发布时间")
-    
+
     class Meta:
         ordering = ['-created_at']
-    
+
     def __str__(self):
         return f"{self.glyph} · {self.author} · {self.get_annotation_type_display()}"
 

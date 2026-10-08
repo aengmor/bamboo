@@ -3,10 +3,10 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bamboo.settings')
 import django
 django.setup()
 
-from texts.models import SlipText, SlipChar, Character
+from texts.models import Slip, SlipChar, Character
 
 # 遍历所有竹简
-for slip in SlipText.objects.iterator():
+for slip in Slip.objects.iterator():
     text = slip.content  # 原始释文（如“道可道也”）
     for pos, char in enumerate(text, start=1):
         # 如果是标点符号或空格，跳过（但也可以保留，视需求而定）

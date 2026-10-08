@@ -19,14 +19,14 @@ from .models import (
     Glyph,
     GlyphAnnotation,
     SlipChar,
-    SlipText,
+    Slip,
 )
 
 
 class SlipListToggleTests(TestCase):
     def setUp(self):
         self.chapter = Chapter.objects.create(title='测试篇章', slip_order=['1'])
-        self.slip = SlipText.objects.create(
+        self.slip = Slip.objects.create(
             slip_id='1',
             content='测试释文',
             chapter=self.chapter,
@@ -54,7 +54,7 @@ class SlipListToggleTests(TestCase):
         self.assertContains(response, 'id="app"')
 
     def test_character_detail_loads_glyphs_without_per_occurrence_queries(self):
-        second_slip = SlipText.objects.create(
+        second_slip = Slip.objects.create(
             slip_id='2',
             content='测试释文',
             chapter=self.chapter,
@@ -80,7 +80,7 @@ class SlipListToggleTests(TestCase):
 
     def test_slip_api_search_is_paginated(self):
         for index in range(21):
-            SlipText.objects.create(
+            Slip.objects.create(
                 slip_id=f'api-{index}',
                 content='分页测试内容',
                 chapter=self.chapter,
@@ -111,10 +111,10 @@ class SlipListToggleTests(TestCase):
         collection = Collection.objects.create(name='测试批次')
         self.chapter.collection = collection
         self.chapter.save(update_fields=['collection'])
-        SlipText.objects.create(slip_id='a', content='甲', chapter=self.chapter)
+        Slip.objects.create(slip_id='a', content='甲', chapter=self.chapter)
         for index in range(2, 7):
             chapter = Chapter.objects.create(title=f'第{index}篇', collection=collection)
-            SlipText.objects.create(slip_id=f'b-{index}', content='乙', chapter=chapter)
+            Slip.objects.create(slip_id=f'b-{index}', content='乙', chapter=chapter)
 
         with CaptureQueriesContext(connection) as queries:
             response = self.client.get(
@@ -135,7 +135,7 @@ class SlipListToggleTests(TestCase):
         self.assertLessEqual(len(slip_queries), 2)
 
     def test_random_slip_redirects_home_when_empty(self):
-        SlipText.objects.all().delete()
+        Slip.objects.all().delete()
 
         response = self.client.get(reverse('random_slip'))
 
@@ -145,7 +145,7 @@ class SlipListToggleTests(TestCase):
 class PublicApiTests(TestCase):
     def setUp(self):
         self.chapter = Chapter.objects.create(title='API 测试篇')
-        self.slip = SlipText.objects.create(
+        self.slip = Slip.objects.create(
             slip_id='API-1',
             content='甲乙',
             chapter=self.chapter,
@@ -279,7 +279,7 @@ class PublicApiTests(TestCase):
         self.assertEqual(collection_response.status_code, 200)
         self.assertEqual(collection_response.data['chapter_count'], 1)
         self.assertEqual(glyph_response.status_code, 200)
-        self.assertEqual(glyph_response.data['character']['glyph'], self.character.glyph)
+        self.assertEqual(glyph_response.data['character']['glyph'], self.character.reading)
         self.assertEqual(glyph_response.data['slip']['slip_id'], self.slip.slip_id)
 
     def test_submission_requires_csrf_token(self):
@@ -329,8 +329,8 @@ class BatchImportTests(TestCase):
 
         self.assertEqual(Chapter.objects.get(title='曹沫之阵').collection.name, '上博简')
         self.assertEqual(Chapter.objects.get(title='老子甲').collection.name, '郭店简')
-        self.assertEqual(SlipText.objects.get(chapter__title='曹沫之阵').content, '甲乙')
-        self.assertEqual(SlipText.objects.get(chapter__title='老子甲').content, '丙丁')
+        self.assertEqual(Slip.objects.get(chapter__title='曹沫之阵').content, '甲乙')
+        self.assertEqual(Slip.objects.get(chapter__title='老子甲').content, '丙丁')
 
     def test_legacy_chapter_format_without_batch_still_imports(self):
         script_path = Path(__file__).resolve().parent.parent / 'import.py'
@@ -346,5 +346,5 @@ class BatchImportTests(TestCase):
 
         chapter = Chapter.objects.get(title='旧格式篇名')
         self.assertIsNone(chapter.collection)
-        self.assertEqual(SlipText.objects.get(chapter=chapter).content, '甲乙')
+        self.assertEqual(Slip.objects.get(chapter=chapter).content, '甲乙')
 

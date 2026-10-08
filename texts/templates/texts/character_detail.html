@@ -2,7 +2,7 @@
 {% load static %}
 
 {# 字详情页模板：展示字信息、出现位置及分页显示出现次数 #}
-{% block title %}{{ char.glyph }} · 字库{% endblock %}
+{% block title %}{{ char.reading }} · 字库{% endblock %}
 
 {% block extra_head %}
 {% endblock %}
@@ -16,8 +16,8 @@
 
 <div class="char-header">
     <div>
-        <a href="https://zi.tools/zi/{{ char.glyph }}" target="_blank" class="back-link">
-            <h1>{{ char.glyph }}</h1>
+        <a href="https://zi.tools/zi/{{ char.reading }}" target="_blank" class="back-link">
+            <h1>{{ char.reading }}</h1>
         </a>
 
         <div class="char-meta">
@@ -35,7 +35,7 @@
         </div>
     </div>
     {% if char.glyph_image %}
-    <img src="{{ char.glyph_image.url }}" alt="{{ char.glyph }}" class="char-glyph-image">
+    <img src="{{ char.glyph_image.url }}" alt="{{ char.reading }}" class="char-glyph-image">
     {% endif %}
 </div>
 
@@ -106,7 +106,7 @@
         <a href="{% url 'slip_detail' pk=sc.slip.pk %}" style="text-decoration: none; color: inherit;">
             <div class="glyph-card">
                 {% if sc.glyph_obj and sc.glyph_obj.image %}
-                <img src="{{ sc.glyph_obj.image.url }}" alt="{{ char.glyph }}" class="glyph-large">
+                <img src="{{ sc.glyph_obj.image.url }}" alt="{{ char.reading }}" class="glyph-large">
                 {% else %}
                 <div class="char-placeholder"></div>
                 {% endif %}
