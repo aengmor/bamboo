@@ -1,6 +1,27 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Django
+db.sqlite3
+db.sqlite3.bak*
 /static/
 /texts/static/texts/vue/
-db.sqlite3
+
+# 环境与本地配置
+venv/
+.env
+*.log
 cloudflared
-/texts/__pycache__/
-/texts/migrations/
+
+# 素材（版权原因不入库）
+/datasource/
+
+# 编辑器
+.idea/
+.vscode/
+
+# 备份文件
+*.bak
+*.bak[0-9]*

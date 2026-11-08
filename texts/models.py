@@ -126,7 +126,13 @@ class SlipChar(models.Model):
     """竹简上的字关联表——关联竹简、字、字形，并记录位置"""
     slip = models.ForeignKey(Slip, on_delete=models.CASCADE, related_name='slipchars', verbose_name="竹简")
     character = models.ForeignKey(Character, on_delete=models.CASCADE, verbose_name="字")
-    glyph = models.ForeignKey(Glyph, on_delete=models.CASCADE, blank=True, verbose_name="字形")
+    glyph = models.ForeignKey(
+        Glyph,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="字形"
+    )
     position = models.IntegerField(default=0, verbose_name="位置")  # 第几个字
     # 字状态
     status = models.CharField(
