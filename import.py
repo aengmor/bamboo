@@ -108,7 +108,15 @@ def import_records(records):
         for char in content:
             if char in SKIP_CHARS or char == ' ':
                 continue
-            char_obj, _ = Character.objects.get_or_create(reading=char, pronunciation='')
+            # 优先复用字典表中已有读音的字头，避免产生空读音的重复字
+            char_obj = (
+                Character.objects.filter(reading=char)
+                .exclude(pronunciation='')
+                .order_by('-freq_total', 'id')
+                .first()
+            )
+            if char_obj is None:
+                char_obj, _ = Character.objects.get_or_create(reading=char, pronunciation='')
             SlipChar.objects.create(slip=slip, character=char_obj, position=position)
             position += 1
             created_chars += 1

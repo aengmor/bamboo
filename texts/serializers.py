@@ -60,15 +60,31 @@ class CollectionCommentSerializer(serializers.ModelSerializer):
 
 
 class CharacterSummarySerializer(serializers.ModelSerializer):
+    # 前端沿用旧字段名 glyph 表示字头，这里与 reading 对齐
+    glyph = serializers.CharField(source='reading', read_only=True)
+
     class Meta:
         model = Character
         fields = [
             'id',
             'reading',
+            'glyph',
             'initial',
             'rhyme',
             'pronunciation',
             'pronunciation_ascii',
+            'harmonic_domain',
+            'phonological_position',
+            'middle_chinese',
+            'mandarin',
+            'phonetic_head',
+            'seen_shijing_rhyme',
+            'seen_zhanguo_rhyme',
+            'freq_total',
+            'freq_pre_qin',
+            'seen_western_zhou',
+            'freq_western_zhou',
+            'rare_source',
             'glyph_image',
             'ids',
             'meaning',
