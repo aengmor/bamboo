@@ -9,7 +9,7 @@ django.setup()
 
 from texts.models import Collection, Chapter, Slip, SlipChar, Character
 
-SKIP_CHARS = set('，。？！、；：《》" …“‘”’（）【】『』〔〕〈〉﹁﹂﹃﹄︵︶︹︺︿﹀︽︾﹁﹂︿﹀︽︾')
+SKIP_CHARS = set('，。？！、；：《》" …“‘”’（）【】『』〔〕〈〉{}﹁﹂﹃﹄︵︶︹︺︿﹀︽︾﹁﹂︿﹀︽︾')
 # 需要跳过的标点符号
 
 def parse_import_file(path):

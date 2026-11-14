@@ -53,7 +53,7 @@ def flagged(value):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="导入《古汉字字典表》")
+    ap = argparse.ArgumentParser(description="导入字典表")
     ap.add_argument("--file", default="oldchinese.xlsx")
     ap.add_argument("--sheet", default="字典表")
     ap.add_argument("--dry-run", action="store_true", help="只统计不写库")

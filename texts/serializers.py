@@ -95,7 +95,7 @@ class CharacterSummarySerializer(serializers.ModelSerializer):
 class GlyphSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Glyph
-        fields = ['id', 'image', 'position', 'source', 'notes']
+        fields = ['id', 'image', 'source', 'notes']
 
 
 class AnnotationReadSerializer(serializers.ModelSerializer):
@@ -175,9 +175,13 @@ class SlipCharacterSerializer(serializers.ModelSerializer):
         fields = ['id', 'position', 'status', 'character', 'glyph']
 
     def get_glyph(self, obj):
-        glyph_map = self.context.get('glyph_map', {})
-        glyph = glyph_map.get(obj.position)
-        return GlyphSummarySerializer(glyph, context=self.context).data if glyph else None
+        if not obj.glyph_id:
+            return None
+        try:
+            glyph = obj.glyph
+        except Glyph.DoesNotExist:
+            return None
+        return GlyphSummarySerializer(glyph, context=self.context).data
 
 
 class SlipDetailSerializer(SlipSummarySerializer):
@@ -187,11 +191,10 @@ class SlipDetailSerializer(SlipSummarySerializer):
         fields = SlipSummarySerializer.Meta.fields + ['characters']
 
     def get_characters(self, obj):
-        glyph_map = {glyph.position: glyph for glyph in getattr(obj, 'api_glyphs', [])}
-        context = {**self.context, 'glyph_map': glyph_map}
-        return SlipCharacterSerializer(
-            getattr(obj, 'api_slipchars', []), many=True, context=context
-        ).data
+        slipchars = getattr(obj, 'api_slipchars', None)
+        if slipchars is None:
+            slipchars = obj.slipchars.select_related('character', 'glyph').order_by('position')
+        return SlipCharacterSerializer(slipchars, many=True, context=self.context).data
 
 
 class CharacterDetailSerializer(CharacterSummarySerializer):
@@ -202,8 +205,9 @@ class CharacterDetailSerializer(CharacterSummarySerializer):
 
 
 class GlyphDetailSerializer(serializers.ModelSerializer):
-    character = CharacterSummarySerializer(read_only=True)
-    slip = SlipSummarySerializer(read_only=True)
+    character = serializers.SerializerMethodField()
+    slip = serializers.SerializerMethodField()
+    position = serializers.SerializerMethodField()
     context_before = serializers.SerializerMethodField()
     context_after = serializers.SerializerMethodField()
 
@@ -221,21 +225,47 @@ class GlyphDetailSerializer(serializers.ModelSerializer):
             'context_after',
         ]
 
+    def _occurrence(self, obj):
+        cached = getattr(obj, '_first_occurrence', None)
+        if cached is None:
+            cached = (
+                obj.slipchar_set.select_related('character', 'slip', 'slip__chapter')
+                .order_by('pk')
+                .first()
+            )
+            obj._first_occurrence = cached
+        return cached
+
+    def get_character(self, obj):
+        occurrence = self._occurrence(obj)
+        if not occurrence:
+            return None
+        return CharacterSummarySerializer(occurrence.character, context=self.context).data
+
+    def get_slip(self, obj):
+        occurrence = self._occurrence(obj)
+        if not occurrence:
+            return None
+        return SlipSummarySerializer(occurrence.slip, context=self.context).data
+
+    def get_position(self, obj):
+        occurrence = self._occurrence(obj)
+        return occurrence.position if occurrence else None
+
     def get_context_before(self, obj):
-        context = self._surrounding_characters(obj)
-        return context[0]
+        return self._surrounding_characters(obj)[0]
 
     def get_context_after(self, obj):
-        context = self._surrounding_characters(obj)
-        return context[1]
+        return self._surrounding_characters(obj)[1]
 
-    @staticmethod
-    def _surrounding_characters(obj):
-        characters = getattr(obj.slip, 'api_slipchars', [])
-        index = next(
-            (i for i, slip_char in enumerate(characters) if slip_char.position == obj.position),
-            -1,
+    def _surrounding_characters(self, obj):
+        occurrence = self._occurrence(obj)
+        if not occurrence:
+            return '', ''
+        characters = list(
+            occurrence.slip.slipchars.select_related('character').order_by('position')
         )
+        index = next((i for i, item in enumerate(characters) if item.pk == occurrence.pk), -1)
         if index < 0:
             return '', ''
         before = ''.join(item.character.reading for item in characters[max(0, index - 10):index])

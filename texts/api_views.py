@@ -292,17 +292,12 @@ class CharacterViewSet(PublicReadOnlyViewSet):
     def occurrences(self, request, pk=None):
         character = self.get_object()
         queryset = SlipChar.objects.filter(character=character).select_related(
-            'character', 'slip', 'slip__chapter', 'slip__chapter__collection'
+            'character', 'glyph', 'slip', 'slip__chapter', 'slip__chapter__collection'
         ).prefetch_related(
             Prefetch(
                 'slip__slipchars',
                 queryset=SlipChar.objects.select_related('character').order_by('position'),
                 to_attr='api_slipchars',
-            ),
-            Prefetch(
-                'slip__glyphs',
-                queryset=Glyph.objects.select_related('character'),
-                to_attr='api_glyphs',
             ),
         ).order_by('slip__chapter__title', 'slip__slip_id', 'position')
         page = self.paginate_queryset(queryset)
@@ -315,11 +310,7 @@ class CharacterViewSet(PublicReadOnlyViewSet):
             else:
                 before = ''.join(item.character.reading for item in chars[max(0, index - 10):index])
                 after = ''.join(item.character.reading for item in chars[index + 1:index + 11])
-            glyph = next(
-                (item for item in getattr(occurrence.slip, 'api_glyphs', [])
-                 if item.position == occurrence.position),
-                None,
-            )
+            glyph = occurrence.glyph if occurrence.glyph_id else None
             results.append({
                 'id': occurrence.pk,
                 'position': occurrence.position,
@@ -345,16 +336,14 @@ class GlyphViewSet(PublicReadOnlyViewSet):
     serializer_class = GlyphDetailSerializer
 
     def get_queryset(self):
-        queryset = Glyph.objects.select_related(
-            'character', 'slip', 'slip__chapter', 'slip__chapter__collection'
-        ).prefetch_related(
+        return Glyph.objects.prefetch_related(
             Prefetch(
-                'slip__slipchars',
-                queryset=SlipChar.objects.select_related('character').order_by('position'),
-                to_attr='api_slipchars',
+                'slipchar_set',
+                queryset=SlipChar.objects.select_related(
+                    'character', 'slip', 'slip__chapter'
+                ).order_by('pk'),
             ),
         )
-        return queryset
 
     submission_actions = frozenset({'annotations'})
 

@@ -87,7 +87,8 @@ class Glyph(models.Model):
         verbose_name_plural = "字形"
 
     def __str__(self):
-        return f"{self.character.reading} · {self.slip.slip_id} · 位置{self.position}"
+        name = getattr(self.image, "name", "")
+        return f"字形 {self.pk}：{name}" if name else f"字形 {self.pk}"
 
 class Character(models.Model):
     """字"""
