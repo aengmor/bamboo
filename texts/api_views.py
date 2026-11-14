@@ -129,7 +129,7 @@ class SlipTextViewSet(PublicReadOnlyViewSet):
             elif search_in == 'slip_id':
                 queryset = queryset.filter(slip_id__icontains=query)
             elif search_in == 'character':
-                queryset = queryset.filter(slipchars__character__glyph__icontains=query).distinct()
+                queryset = queryset.filter(slipchars__character__reading__icontains=query).distinct()
             else:
                 queryset = queryset.filter(
                     Q(content__icontains=query)
@@ -269,11 +269,11 @@ class CharacterViewSet(PublicReadOnlyViewSet):
             except (LookupError, ValueError):
                 pass
             queryset = queryset.filter(
-                Q(glyph__icontains=query)
+                Q(reading__icontains=query)
                 | Q(pronunciation_ascii__icontains=query)
                 | Q(pronunciation__icontains=query)
             )
-        return queryset.order_by('glyph', 'pronunciation', 'pk')
+        return queryset.order_by('reading', 'pronunciation', 'pk')
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
