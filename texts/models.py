@@ -99,6 +99,22 @@ class Character(models.Model):
     pronunciation = models.CharField(max_length=10, blank=True, verbose_name="读音")
     pronunciation_ascii = models.CharField(max_length=100, blank=True, verbose_name="拼音")
     
+    # 音韵地位与中古/现代读法（来自《古汉字字典表》）
+    harmonic_domain = models.CharField(max_length=20, blank=True, verbose_name="谐声域")
+    phonological_position = models.CharField(max_length=30, blank=True, verbose_name="音韵地位")
+    middle_chinese = models.CharField(max_length=30, blank=True, verbose_name="中古音")
+    mandarin = models.CharField(max_length=30, blank=True, verbose_name="普通话")
+    phonetic_head = models.CharField(max_length=10, blank=True, verbose_name="声首")
+
+    # 韵部与字频
+    seen_shijing_rhyme = models.BooleanField(default=False, verbose_name="见诗经韵")
+    seen_zhanguo_rhyme = models.BooleanField(default=False, verbose_name="见战国韵")
+    freq_total = models.IntegerField(null=True, blank=True, verbose_name="总出现次数")
+    freq_pre_qin = models.FloatField(null=True, blank=True, verbose_name="先秦字频（归一化）")
+    seen_western_zhou = models.IntegerField(null=True, blank=True, verbose_name="见西周")
+    freq_western_zhou = models.FloatField(null=True, blank=True, verbose_name="西周字频（归一化）")
+    rare_source = models.CharField(max_length=100, blank=True, verbose_name="少见词出处")
+
     # 字形信息（图片或动态组字编码）
     glyph_image = models.ImageField(upload_to='glyphs/', blank=True, null=True, verbose_name="字形图片")
     ids = models.CharField(max_length=100, blank=True, verbose_name="构字式")

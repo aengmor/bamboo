@@ -256,7 +256,7 @@ class CharacterViewSet(PublicReadOnlyViewSet):
         query = self.request.query_params.get('q', '').strip()
         search_type = self.request.query_params.get('search_type', 'glyph')
         if not query:
-            return queryset.order_by('glyph', 'pronunciation', 'pk')
+            return queryset.order_by('reading', 'pronunciation', 'pk')
         if search_type == 'meaning':
             queryset = queryset.filter(meaning__icontains=query)
         elif search_type == 'pronunciation':
